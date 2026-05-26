@@ -23,7 +23,8 @@ export function calculateBudgetTotal(items: { quantity: number; unitPrice: numbe
 }
 
 export function calculateTaxAmount(subtotal: number, taxPercentage: number): number {
-  assertValidNumber(subtotal, 'subtotal')
+  // Subtotal must be a valid, non-negative number per business rules
+  assertNonNegative(subtotal, 'subtotal')
   assertPercentage(taxPercentage, 'taxPercentage')
 
   return roundCurrency(subtotal * (taxPercentage / 100))
