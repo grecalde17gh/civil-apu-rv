@@ -2,16 +2,6 @@ import { z } from 'zod'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const nonNegativeNumber = z.preprocess((value) => {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed === '') return undefined
-    const number = Number(trimmed)
-    return Number.isNaN(number) ? value : number
-  }
-  return value
-}, z.number().finite().nonnegative())
-
 const optionalNonNegativeNumber = z.preprocess((value) => {
   if (value === undefined || value === null) return undefined
   if (typeof value === 'string') {
