@@ -243,6 +243,21 @@ Validación:
 
 ---
 
+## 6.7. Reglas validadas por Franklin
+
+Las siguientes reglas han sido confirmadas como válidas para el MVP actual:
+
+- El rendimiento se expresa por unidad.
+- El costo de mano de obra se calcula por hora.
+- Los equipos se calculan por hora.
+- El transporte se maneja como una sección separada.
+- El porcentaje de costos indirectos por defecto es 20%, pero puede variar.
+- El porcentaje de indirectos cambia por proyecto, no por rubro.
+- El presupuesto final no debe incluir IVA.
+- El VAE es informativo y no participa en el cálculo del precio unitario.
+
+> Deuda técnica: el MVP mantiene `indirectPercentage` en el rubro como solución temporal. Según la validación técnica, los costos indirectos deben definirse a nivel de Proyecto o Presupuesto.
+
 ## 7. Validación de rubros de prueba
 
 Se utilizarán rubros reales del Excel base para comparar resultados entre:

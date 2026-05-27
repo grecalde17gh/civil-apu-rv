@@ -258,6 +258,30 @@ Regla asumida:
 tiempo_requerido = 1 / rendimiento
 ```
 
+## 10. Reglas validadas por Franklin
+
+Franklin confirmó las siguientes reglas para esta fase del MVP:
+
+- El rendimiento se expresa por unidad.
+- La mano de obra se calcula por hora.
+- Los equipos se calculan por hora.
+- El transporte se maneja como una sección separada y se calcula como `quantity × unitCost`.
+- El porcentaje de costos indirectos por defecto es 20%, pero puede variar por proyecto.
+- El presupuesto final no debe incluir IVA.
+- El VAE queda solo informativo.
+
+### 10.1. Fórmulas actuales implementadas
+
+- Mano de obra: `workerQuantity × hourlyCostSnapshot × timeRequired`
+- Equipos: `equipmentQuantity × rateSnapshot × timeRequired`
+- Transporte: `quantity × unitCost`
+- Materiales: `quantity × unitCost`
+
+### 10.2. Deuda técnica
+
+- El campo `indirectPercentage` sigue estando en `Rubro` como solución temporal.
+- Según Franklin, los costos indirectos deben definirse por Proyecto o Presupuesto, no por Rubro.
+
 Fórmula:
 
 ```text

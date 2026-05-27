@@ -50,6 +50,21 @@ El cálculo general de un APU seguirá esta secuencia:
 7. Calcular precio unitario final.
 ```
 
+## 3.1. Reglas validadas por Franklin
+
+Estas reglas han sido validadas por Franklin y definen el comportamiento actual del MVP:
+
+- El rendimiento se expresa por unidad.
+- El costo de mano de obra se calcula por hora.
+- Los equipos se calculan por hora.
+- El transporte se maneja como una sección separada.
+- El porcentaje de costos indirectos por defecto es 20%, pero puede variar.
+- El porcentaje de indirectos cambia por proyecto, no por rubro.
+- El presupuesto final no debe incluir IVA.
+- El VAE es informativo y no participa en el cálculo del precio unitario.
+
+> Deuda técnica: actualmente el sistema guarda `indirectPercentage` en el rubro como solución temporal. Según la validación, los costos indirectos deben definirse a nivel de Proyecto o Presupuesto.
+
 ---
 
 ## 4. Datos generales del rubro
@@ -102,6 +117,12 @@ También puede manejarse como:
 costo_equipo = cantidad × tarifa × factor_rendimiento
 ```
 
+Actualmente la implementación del MVP usa la fórmula validada:
+
+```text
+costo_equipo = equipmentQuantity × rateSnapshot × timeRequired
+```
+
 La definición exacta del uso de `tiempo_uso` o `factor_rendimiento` deberá validarse con Franklin según la lógica del Excel base.
 
 ## 5.3. Subtotal de equipos
@@ -140,6 +161,12 @@ Cada componente de mano de obra debe tener:
 
 ```text
 costo_mano_obra = cantidad_trabajadores × costo_hora × tiempo_requerido
+```
+
+Actualmente la implementación del MVP usa la fórmula validada:
+
+```text
+costo_mano_obra = workerQuantity × hourlyCostSnapshot × timeRequired
 ```
 
 En caso de que el Excel maneje el rendimiento como producción por jornada, se deberá convertir correctamente el rendimiento a tiempo requerido.
@@ -239,6 +266,12 @@ Cada componente de transporte debe tener:
 
 ```text
 costo_transporte = cantidad × costo_unitario
+```
+
+Actualmente la implementación del MVP usa la fórmula validada:
+
+```text
+costo_transporte = quantity × unitCost
 ```
 
 ## 8.4. Subtotal de transporte
