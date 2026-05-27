@@ -6,13 +6,13 @@ import { updateProjectAction } from '../../actions'
 
 type ProjectEditPageProps = {
   params: Promise<{
-    id: string
+    projectId: string
   }>
 }
 
 export default async function EditProjectPage({ params }: ProjectEditPageProps) {
-  const { id } = await params
-  const project = await getProjectById(id)
+  const { projectId } = await params
+  const project = await getProjectById(projectId)
 
   if (!project) {
     notFound()
@@ -47,7 +47,7 @@ export default async function EditProjectPage({ params }: ProjectEditPageProps) 
           </Link>
         </div>
 
-        <ProjectForm action={updateProjectAction} submitLabel="Guardar cambios" hiddenId={id} initialData={initialData} />
+        <ProjectForm action={updateProjectAction} submitLabel="Guardar cambios" hiddenId={projectId} initialData={initialData} />
       </div>
     </div>
   )
