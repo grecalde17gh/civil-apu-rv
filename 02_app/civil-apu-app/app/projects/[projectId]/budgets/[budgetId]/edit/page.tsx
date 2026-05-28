@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BudgetForm from '@/src/components/budgets/BudgetForm'
 import { getBudgetByIdWithProject } from '@/src/lib/db/budgets'
-import { updateBudgetAction } from '../../actions'
+import { updateBudgetAction, addBudgetItemAction, deleteBudgetItemAction } from '../../actions'
+import BudgetItemForm from '@/src/components/budgets/BudgetItemForm'
+import BudgetItemsTable from '@/src/components/budgets/BudgetItemsTable'
+import { getRubros } from '@/src/lib/db/rubros'
 
 type EditBudgetPageProps = {
   params: Promise<{
@@ -14,6 +17,8 @@ type EditBudgetPageProps = {
 export default async function EditBudgetPage({ params }: EditBudgetPageProps) {
   const { projectId, budgetId } = await params
   const budget = await getBudgetByIdWithProject(budgetId)
+
+  const rubros = await getRubros()
 
   if (!budget || budget.projectId !== projectId) {
     notFound()
@@ -54,6 +59,36 @@ export default async function EditBudgetPage({ params }: EditBudgetPageProps) {
           hiddenId={budgetId}
           hiddenProjectId={projectId}
         />
+        <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-zinc-500">Subtotal</p>
+              <p className="text-lg font-medium text-zinc-900">{budget.subtotal?.toString() ?? '0.00'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-zinc-500">IVA ({budget.ivaPercentage?.toString() ?? '0'}%)</p>
+              <p className="text-lg font-medium text-zinc-900">{budget.ivaAmount?.toString() ?? '0.00'}</p>
+            </div>
+          </div>
+          <div className="mb-4">
+            <p className="text-sm text-zinc-500">Total (neto sin IVA)</p>
+            <p className="text-2xl font-semibold text-zinc-900">{budget.total?.toString() ?? budget.subtotal?.toString() ?? '0.00'}</p>
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-6">
+          <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900">Agregar rubro al presupuesto</h2>
+            <BudgetItemForm action={addBudgetItemAction} budgetId={budgetId} projectId={projectId} rubros={rubros} />
+          </div>
+
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900">Ítems del presupuesto</h2>
+            <div className="rounded-2xl border border-zinc-200 bg-white">
+              <BudgetItemsTable items={budget.items} budgetId={budgetId} projectId={projectId} deleteAction={deleteBudgetItemAction} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

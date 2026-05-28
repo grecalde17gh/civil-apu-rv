@@ -49,3 +49,21 @@ export type BudgetFormInput = z.infer<typeof budgetFormSchema>
 export function validateBudgetInput(data: unknown): BudgetFormInput {
   return budgetFormSchema.parse(data)
 }
+
+export const budgetItemSchema = z.object({
+  rubroId: z.string().uuid(),
+  quantity: z.preprocess((value) => {
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      const number = Number(trimmed)
+      return Number.isNaN(number) ? value : number
+    }
+    return value
+  }, z.number().finite().min(0.0001)),
+})
+
+export type BudgetItemInput = z.infer<typeof budgetItemSchema>
+
+export function validateBudgetItemInput(data: unknown): BudgetItemInput {
+  return budgetItemSchema.parse(data)
+}

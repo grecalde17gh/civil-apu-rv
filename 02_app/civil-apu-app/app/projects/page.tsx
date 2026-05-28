@@ -63,12 +63,18 @@ export default async function ProjectsPage() {
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.startDate?.toISOString().slice(0, 10) ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.endDate?.toISOString().slice(0, 10) ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{getStatusLabel(project.status)}</td>
-                  <td className="px-4 py-4 text-sm text-zinc-700">
+                  <td className="px-4 py-4 text-sm text-zinc-700 space-x-2">
                     <Link
                       href={`/projects/${project.id}/edit`}
                       className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
                     >
                       Editar
+                    </Link>
+                    <Link
+                      href={`/projects/${project.id}/budgets`}
+                      className="rounded-full border border-zinc-300 bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800"
+                    >
+                      Presupuestos
                     </Link>
                   </td>
                 </tr>
