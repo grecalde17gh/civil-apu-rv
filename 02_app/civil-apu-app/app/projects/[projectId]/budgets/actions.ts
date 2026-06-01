@@ -2,12 +2,12 @@
 
 import { redirect } from 'next/navigation'
 import { validateBudgetInput } from '@/src/lib/validations/budget'
-import { createBudget, updateBudget } from '@/src/lib/db/budgets'
+import { copyBudget, createBudget, updateBudget } from '@/src/lib/db/budgets'
 import { getProjectById } from '@/src/lib/db/projects'
 import { validateBudgetItemInput } from '@/src/lib/validations/budget'
 import { getRubroById } from '@/src/lib/db/rubros'
-import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem } from '@/src/lib/db/budgets'
-import { calculateBudgetItemTotal } from '@/src/lib/calculations/budget'
+import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject } from '@/src/lib/db/budgets'
+import { calculateBudgetItemSnapshots } from '@/src/lib/calculations/budget'
 
 export async function createBudgetAction(formData: FormData) {
   const data = Object.fromEntries(formData)
@@ -28,6 +28,7 @@ export async function createBudgetAction(formData: FormData) {
     code: parsed.code,
     name: parsed.name,
     status: parsed.status,
+    indirectPercentage: parsed.indirectPercentage ?? 0,
     ivaPercentage: parsed.ivaPercentage ?? 0,
     notes: parsed.notes,
     issuedAt: parsed.issuedAt,
@@ -51,6 +52,7 @@ export async function updateBudgetAction(formData: FormData) {
     code: parsed.code,
     name: parsed.name,
     status: parsed.status,
+    indirectPercentage: parsed.indirectPercentage ?? 0,
     ivaPercentage: parsed.ivaPercentage ?? 0,
     notes: parsed.notes,
     issuedAt: parsed.issuedAt,
@@ -74,17 +76,31 @@ export async function addBudgetItemAction(formData: FormData) {
     throw new Error('BudgetId es requerido')
   }
 
+  const budget = await getBudgetByIdWithProject(budgetId)
+  if (!budget) {
+    throw new Error('Presupuesto no encontrado')
+  }
+
   const rubro = await getRubroById(parsed.rubroId)
   if (!rubro) {
     throw new Error('Rubro no encontrado')
   }
 
-  if (rubro.unitPrice == null) {
-    throw new Error('El rubro seleccionado no tiene precio unitario calculado. No se puede agregar.')
+  if (rubro.directCost == null) {
+    throw new Error('El rubro seleccionado no tiene costo directo calculado. No se puede agregar.')
   }
 
-  const unitPriceSnapshot = Number(rubro.unitPrice.toString())
-  const totalPrice = calculateBudgetItemTotal(parsed.quantity, unitPriceSnapshot)
+  const directCost = Number(rubro.directCost.toString())
+  const indirectPercentage = Number(
+    budget.indirectPercentage?.toString() ??
+      budget.project.defaultIndirectPercentage?.toString() ??
+      rubro.indirectPercentage.toString(),
+  )
+  const itemSnapshots = calculateBudgetItemSnapshots({
+    quantity: parsed.quantity,
+    directCost,
+    indirectPercentage,
+  })
 
   const existingItems = await getBudgetItemsByBudgetId(budgetId)
   const itemNumber = String(existingItems.length + 1)
@@ -97,8 +113,12 @@ export async function addBudgetItemAction(formData: FormData) {
     descriptionSnapshot: rubro.description,
     unitSnapshot: rubro.unit,
     quantity: parsed.quantity,
-    unitPriceSnapshot,
-    totalPrice,
+    indirectPercentageApplied: itemSnapshots.indirectPercentageApplied,
+    directCostSnapshot: itemSnapshots.directCostSnapshot,
+    indirectCostSnapshot: itemSnapshots.indirectCostSnapshot,
+    unitPriceSnapshot: itemSnapshots.unitPriceSnapshot,
+    subtotalSnapshot: itemSnapshots.subtotalSnapshot,
+    totalPrice: itemSnapshots.totalPrice,
   })
 
   await recalculateBudgetTotals(budgetId)
@@ -128,4 +148,16 @@ export async function deleteBudgetItemAction(formData: FormData) {
   } else {
     redirect('/projects')
   }
+}
+
+export async function copyBudgetAction(formData: FormData) {
+  const budgetId = formData.get('budgetId')
+  const projectId = formData.get('projectId')
+
+  if (typeof budgetId !== 'string' || typeof projectId !== 'string') {
+    throw new Error('Invalid budget copy params')
+  }
+
+  const copied = await copyBudget(budgetId)
+  redirect(`/projects/${projectId}/budgets/${copied.id}/edit`)
 }

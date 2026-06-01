@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BudgetForm from '@/src/components/budgets/BudgetForm'
 import { getBudgetByIdWithProject } from '@/src/lib/db/budgets'
-import { updateBudgetAction, addBudgetItemAction, deleteBudgetItemAction } from '../../actions'
+import { updateBudgetAction, addBudgetItemAction, deleteBudgetItemAction, copyBudgetAction } from '../../actions'
 import BudgetItemForm from '@/src/components/budgets/BudgetItemForm'
 import BudgetItemsTable from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
@@ -28,6 +28,7 @@ export default async function EditBudgetPage({ params }: EditBudgetPageProps) {
     code: budget.code ?? undefined,
     name: budget.name,
     status: budget.status,
+    indirectPercentage: Number(budget.indirectPercentage?.toString() ?? budget.project.defaultIndirectPercentage?.toString() ?? '20'),
     ivaPercentage: Number(budget.ivaPercentage?.toString() ?? '0'),
     notes: budget.notes ?? undefined,
     issuedAt: budget.issuedAt ?? undefined,
@@ -44,12 +45,24 @@ export default async function EditBudgetPage({ params }: EditBudgetPageProps) {
               Proyecto: {budget.project.name} · Cliente: {budget.clientNameSnapshot ?? budget.project.clientName ?? 'Sin cliente'} · Ubicación: {budget.locationSnapshot ?? budget.project.location ?? 'Sin ubicación'}
             </p>
           </div>
-          <Link
-            href={`/projects/${projectId}/budgets`}
-            className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
-          >
-            Volver a presupuestos
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <form action={copyBudgetAction}>
+              <input type="hidden" name="budgetId" value={budgetId} />
+              <input type="hidden" name="projectId" value={projectId} />
+              <button
+                type="submit"
+                className="inline-flex items-center rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+              >
+                Crear copia
+              </button>
+            </form>
+            <Link
+              href={`/projects/${projectId}/budgets`}
+              className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+            >
+              Volver a presupuestos
+            </Link>
+          </div>
         </div>
 
         <BudgetForm
@@ -78,7 +91,15 @@ export default async function EditBudgetPage({ params }: EditBudgetPageProps) {
 
         <div className="mt-8 space-y-6">
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <h2 className="mb-4 text-lg font-semibold text-zinc-900">Agregar rubro al presupuesto</h2>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-zinc-900">Agregar rubro al presupuesto</h2>
+              <Link
+                href={`/rubros/new?budgetId=${budgetId}&projectId=${projectId}`}
+                className="inline-flex items-center justify-center rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              >
+                Crear rubro nuevo
+              </Link>
+            </div>
             <BudgetItemForm action={addBudgetItemAction} budgetId={budgetId} projectId={projectId} rubros={rubros} />
           </div>
 

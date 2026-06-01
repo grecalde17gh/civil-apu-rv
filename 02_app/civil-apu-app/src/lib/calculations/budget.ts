@@ -1,4 +1,5 @@
 import { assertNonNegative, assertPercentage, assertValidNumber, roundCurrency } from './validation'
+import { calculateIndirectCost, calculateUnitPrice } from './apu'
 
 export function calculateBudgetItemTotal(quantity: number, unitPrice: number): number {
   assertValidNumber(quantity, 'quantity')
@@ -20,6 +21,30 @@ export function calculateBudgetTotal(items: { quantity: number; unitPrice: numbe
   }, 0)
 
   return roundCurrency(total)
+}
+
+export function calculateBudgetItemSnapshots(params: {
+  quantity: number
+  directCost: number
+  indirectPercentage: number
+}) {
+  const { quantity, directCost, indirectPercentage } = params
+
+  assertValidNumber(quantity, 'quantity')
+  assertNonNegative(quantity, 'quantity')
+
+  const indirectCostSnapshot = calculateIndirectCost(directCost, indirectPercentage)
+  const unitPriceSnapshot = calculateUnitPrice(directCost, indirectPercentage)
+  const subtotalSnapshot = calculateBudgetItemTotal(quantity, unitPriceSnapshot)
+
+  return {
+    indirectPercentageApplied: indirectPercentage,
+    directCostSnapshot: roundCurrency(directCost),
+    indirectCostSnapshot,
+    unitPriceSnapshot,
+    subtotalSnapshot,
+    totalPrice: subtotalSnapshot,
+  }
 }
 
 export function calculateTaxAmount(subtotal: number, taxPercentage: number): number {

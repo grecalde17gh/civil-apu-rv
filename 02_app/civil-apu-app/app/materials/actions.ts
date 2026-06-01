@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createMaterial, updateMaterial, toggleMaterialActive } from '@/src/lib/db/materials'
+import { copyMaterial, createMaterial, updateMaterial, toggleMaterialActive } from '@/src/lib/db/materials'
 import { validateMaterialInput } from '@/src/lib/validations/material'
 
 export async function toggleMaterialActiveAction(formData: FormData) {
@@ -41,4 +41,14 @@ export async function updateMaterialAction(formData: FormData) {
 
   await updateMaterial(id, parsed)
   redirect('/materials')
+}
+
+export async function copyMaterialAction(formData: FormData) {
+  const id = formData.get('id')
+  if (typeof id !== 'string') {
+    throw new Error('Invalid material id')
+  }
+
+  const copied = await copyMaterial(id)
+  redirect(`/materials/${copied.id}/edit`)
 }

@@ -1,7 +1,8 @@
 import { prisma } from './prisma'
-import type { Rubro } from '@prisma/client'
+import type { Prisma, Rubro } from '@prisma/client'
 import type { RubroFormInput } from '@/src/lib/validations/rubro'
 import { calculateDirectCost, calculateIndirectCost, calculateUnitPrice } from '@/src/lib/calculations/apu'
+import { buildCopyName, generateCopyCode } from './copy'
 
 export async function getRubros(): Promise<Rubro[]> {
   return prisma.rubro.findMany({
@@ -33,7 +34,7 @@ export async function createRubro(data: RubroFormInput): Promise<Rubro> {
 }
 
 export async function updateRubro(id: string, data: RubroFormInput): Promise<Rubro> {
-  return prisma.rubro.update({
+  await prisma.rubro.update({
     where: { id },
     data: {
       code: data.code,
@@ -48,9 +49,132 @@ export async function updateRubro(id: string, data: RubroFormInput): Promise<Rub
       calculationStatus: data.calculationStatus,
     },
   })
+
+  await updateRubroTotals(id)
+
+  const updated = await getRubroById(id)
+  if (!updated) {
+    throw new Error('Rubro no encontrado')
+  }
+
+  return updated
 }
 
-export async function updateRubroTotals(rubroId: string, tx = prisma): Promise<void> {
+export async function copyRubro(id: string): Promise<Rubro> {
+  const rubro = await prisma.rubro.findUnique({
+    where: { id },
+    include: {
+      materials: true,
+      labor: true,
+      equipment: true,
+      transport: true,
+    },
+  })
+
+  if (!rubro) {
+    throw new Error('Rubro no encontrado')
+  }
+
+  const code = await generateCopyCode(rubro.code, async (candidate) => {
+    const existing = await prisma.rubro.findUnique({ where: { code: candidate }, select: { id: true } })
+    return existing !== null
+  })
+
+  if (!code) {
+    throw new Error('No se pudo generar codigo para la copia del rubro')
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const copied = await tx.rubro.create({
+      data: {
+        code,
+        description: buildCopyName(rubro.description),
+        unit: rubro.unit,
+        category: rubro.category,
+        performanceValue: rubro.performanceValue,
+        performanceUnit: rubro.performanceUnit,
+        indirectPercentage: rubro.indirectPercentage,
+        directCost: rubro.directCost,
+        indirectCost: rubro.indirectCost,
+        unitPrice: rubro.unitPrice,
+        status: 'DRAFT',
+        calculationStatus: rubro.calculationStatus,
+        notes: rubro.notes,
+        sourceExcelSheet: rubro.sourceExcelSheet,
+        materials: {
+          create: rubro.materials.map((line) => ({
+            materialId: line.materialId,
+            quantity: line.quantity,
+            unit: line.unit,
+            unitCostSnapshot: line.unitCostSnapshot,
+            totalCost: line.totalCost,
+            notes: line.notes,
+          })),
+        },
+        labor: {
+          create: rubro.labor.map((line) => ({
+            laborItemId: line.laborItemId,
+            workerQuantity: line.workerQuantity,
+            hourlyCostSnapshot: line.hourlyCostSnapshot,
+            timeRequired: line.timeRequired,
+            performanceValue: line.performanceValue,
+            performanceMode: line.performanceMode,
+            totalCost: line.totalCost,
+            notes: line.notes,
+          })),
+        },
+        equipment: {
+          create: rubro.equipment.map((line) => ({
+            equipmentItemId: line.equipmentItemId,
+            equipmentQuantity: line.equipmentQuantity,
+            rateType: line.rateType,
+            rateSnapshot: line.rateSnapshot,
+            timeRequired: line.timeRequired,
+            performanceValue: line.performanceValue,
+            performanceMode: line.performanceMode,
+            totalCost: line.totalCost,
+            notes: line.notes,
+          })),
+        },
+        transport: {
+          create: rubro.transport.map((line) => ({
+            description: line.description,
+            unit: line.unit,
+            quantity: line.quantity,
+            unitCost: line.unitCost,
+            totalCost: line.totalCost,
+            notes: line.notes,
+          })),
+        },
+      },
+    })
+
+    await updateRubroTotals(copied.id, tx)
+
+    const updated = await tx.rubro.findUnique({ where: { id: copied.id } })
+    if (!updated) {
+      throw new Error('No se pudo recuperar la copia del rubro')
+    }
+
+    return updated
+  })
+}
+
+export async function getRubroUsageContexts(rubroId: string) {
+  return prisma.budgetItem.findMany({
+    where: { rubroId },
+    include: {
+      budget: {
+        include: {
+          project: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export async function updateRubroTotals(rubroId: string, tx: Prisma.TransactionClient = prisma): Promise<void> {
   const materialsAggregate = await tx.rubroMaterial.aggregate({
     where: { rubroId },
     _sum: {

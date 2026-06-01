@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import type { Material } from '@prisma/client'
+import { buildCopyName, generateCopyCode } from './copy'
 
 export type MaterialFormInput = {
   code?: string
@@ -68,5 +69,34 @@ export async function toggleMaterialActive(id: string, isActive: boolean): Promi
   return prisma.material.update({
     where: { id },
     data: { isActive },
+  })
+}
+
+export async function copyMaterial(id: string): Promise<Material> {
+  const material = await getMaterialById(id)
+
+  if (!material) {
+    throw new Error('Material no encontrado')
+  }
+
+  const code = await generateCopyCode(material.code, async (candidate) => {
+    const existing = await prisma.material.findFirst({ where: { code: candidate }, select: { id: true } })
+    return existing !== null
+  })
+
+  return prisma.material.create({
+    data: {
+      code,
+      description: buildCopyName(material.description),
+      unit: material.unit,
+      unitCost: material.unitCost,
+      stockQuantity: material.stockQuantity,
+      cpc: material.cpc,
+      vae: material.vae,
+      category: material.category,
+      source: material.source,
+      priceDate: material.priceDate,
+      isActive: material.isActive,
+    },
   })
 }

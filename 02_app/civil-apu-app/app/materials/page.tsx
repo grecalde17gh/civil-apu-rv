@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getMaterials } from '@/src/lib/db/materials'
 import type { Material } from '@prisma/client'
-import { toggleMaterialActiveAction } from './actions'
+import { copyMaterialAction, toggleMaterialActiveAction } from './actions'
 
 export default async function MaterialsPage() {
   const materials = await getMaterials()
@@ -75,6 +75,15 @@ export default async function MaterialsPage() {
                           className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800"
                         >
                           {material.isActive ? 'Desactivar' : 'Activar'}
+                        </button>
+                      </form>
+                      <form action={copyMaterialAction} className="inline">
+                        <input type="hidden" name="id" value={material.id} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          Crear copia
                         </button>
                       </form>
                     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateBudgetItemTotal, calculateBudgetTotal, calculateTaxAmount, calculateBudgetGrandTotal } from '../budget'
+import { calculateBudgetItemSnapshots, calculateBudgetItemTotal, calculateBudgetTotal, calculateTaxAmount, calculateBudgetGrandTotal } from '../budget'
 
 describe('Budget calculations', () => {
   it('calculates item totals', () => {
@@ -21,6 +21,31 @@ describe('Budget calculations', () => {
 
     const total = calculateBudgetTotal(items)
     expect(total).toBeCloseTo(3728.3, 2)
+  })
+
+  it('calculates budget item snapshots with the current budget indirect percentage', () => {
+    const initialBudgetItem = calculateBudgetItemSnapshots({
+      quantity: 2,
+      directCost: 100,
+      indirectPercentage: 25,
+    })
+    const test1BudgetItem = calculateBudgetItemSnapshots({
+      quantity: 2,
+      directCost: 100,
+      indirectPercentage: 20,
+    })
+
+    expect(initialBudgetItem.indirectPercentageApplied).toBe(25)
+    expect(initialBudgetItem.directCostSnapshot).toBeCloseTo(100, 2)
+    expect(initialBudgetItem.indirectCostSnapshot).toBeCloseTo(25, 2)
+    expect(initialBudgetItem.unitPriceSnapshot).toBeCloseTo(125, 2)
+    expect(initialBudgetItem.subtotalSnapshot).toBeCloseTo(250, 2)
+
+    expect(test1BudgetItem.indirectPercentageApplied).toBe(20)
+    expect(test1BudgetItem.directCostSnapshot).toBeCloseTo(100, 2)
+    expect(test1BudgetItem.indirectCostSnapshot).toBeCloseTo(20, 2)
+    expect(test1BudgetItem.unitPriceSnapshot).toBeCloseTo(120, 2)
+    expect(test1BudgetItem.subtotalSnapshot).toBeCloseTo(240, 2)
   })
 
   it('calculates IVA and grand total', () => {

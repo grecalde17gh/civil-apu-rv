@@ -1,5 +1,5 @@
 import type { RubroTransport } from '@prisma/client'
-import { addRubroTransportAction, deleteRubroTransportAction } from '@/app/rubros/actions'
+import { addRubroTransportAction, deleteRubroTransportAction, updateRubroTransportAction } from '@/app/rubros/actions'
 
 type RubroTransportSectionProps = {
   rubroId: string
@@ -77,6 +77,38 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
                   <td className="px-4 py-4 text-sm text-zinc-700">{line.totalCost.toString()}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{line.notes ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">
+                    <details className="mb-2">
+                      <summary className="cursor-pointer rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100">
+                        Editar
+                      </summary>
+                      <form action={updateRubroTransportAction} className="mt-3 grid min-w-64 gap-2">
+                        <input type="hidden" name="id" value={line.id} />
+                        <input type="hidden" name="rubroId" value={rubroId} />
+                        <label className="text-xs font-medium text-zinc-600">
+                          Descripcion
+                          <input name="description" defaultValue={line.description} required className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Unidad
+                          <input name="unit" defaultValue={line.unit ?? ''} required className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Cantidad
+                          <input name="quantity" defaultValue={line.quantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Costo unitario
+                          <input name="unitCost" defaultValue={line.unitCost.toString()} required inputMode="decimal" className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Notas
+                          <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <button type="submit" className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800">
+                          Guardar
+                        </button>
+                      </form>
+                    </details>
                     <form action={deleteRubroTransportAction} className="inline">
                       <input type="hidden" name="id" value={line.id} />
                       <input type="hidden" name="rubroId" value={rubroId} />

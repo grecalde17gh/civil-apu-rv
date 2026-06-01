@@ -59,7 +59,7 @@ export default async function ProjectsPage() {
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.name}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.clientName ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.location ?? '-'}</td>
-                  <td className="px-4 py-4 text-sm text-zinc-700">{project.defaultIndirectPercentage.toString()}%</td>
+                  <td className="px-4 py-4 text-sm text-zinc-700">{project.defaultIndirectPercentage?.toString() ?? '20'}%</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.startDate?.toISOString().slice(0, 10) ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{project.endDate?.toISOString().slice(0, 10) ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{getStatusLabel(project.status)}</td>

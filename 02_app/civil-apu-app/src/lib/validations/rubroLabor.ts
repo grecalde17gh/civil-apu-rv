@@ -12,6 +12,16 @@ const positiveNumber = z.preprocess((value) => {
   return value
 }, z.number().finite().positive())
 
+const nonNegativeNumber = z.preprocess((value) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed === '') return value
+    const number = Number(trimmed)
+    return Number.isNaN(number) ? value : number
+  }
+  return value
+}, z.number().finite().nonnegative())
+
 export const rubroLaborFormSchema = z.object({
   rubroId: nonEmptyString,
   laborItemId: nonEmptyString,
@@ -24,4 +34,19 @@ export type RubroLaborFormInput = z.infer<typeof rubroLaborFormSchema>
 
 export function validateRubroLaborInput(data: unknown): RubroLaborFormInput {
   return rubroLaborFormSchema.parse(data)
+}
+
+export const rubroLaborUpdateSchema = z.object({
+  id: nonEmptyString,
+  rubroId: nonEmptyString,
+  workerQuantity: nonNegativeNumber,
+  timeRequired: nonNegativeNumber,
+  hourlyCostSnapshot: nonNegativeNumber,
+  notes: z.string().trim().optional(),
+})
+
+export type RubroLaborUpdateInput = z.infer<typeof rubroLaborUpdateSchema>
+
+export function validateRubroLaborUpdateInput(data: unknown): RubroLaborUpdateInput {
+  return rubroLaborUpdateSchema.parse(data)
 }

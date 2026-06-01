@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getProjectById } from '@/src/lib/db/projects'
 import { getBudgetsByProjectId } from '@/src/lib/db/budgets'
+import { copyBudgetAction } from './actions'
 
 type BudgetListPageProps = {
   params: Promise<{
@@ -91,12 +92,24 @@ export default async function BudgetListPage({ params }: BudgetListPageProps) {
                     <td className="px-4 py-4 text-sm text-zinc-700">{budget.issuedAt?.toISOString().slice(0, 10) ?? '-'}</td>
                     <td className="px-4 py-4 text-sm text-zinc-700">{budget.createdAt.toISOString().slice(0, 10)}</td>
                     <td className="px-4 py-4 text-sm text-zinc-700">
-                      <Link
-                        href={`/projects/${projectId}/budgets/${budget.id}/edit`}
-                        className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
-                      >
-                        Editar
-                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/projects/${projectId}/budgets/${budget.id}/edit`}
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          Editar
+                        </Link>
+                        <form action={copyBudgetAction} className="inline">
+                          <input type="hidden" name="budgetId" value={budget.id} />
+                          <input type="hidden" name="projectId" value={projectId} />
+                          <button
+                            type="submit"
+                            className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                          >
+                            Crear copia
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))

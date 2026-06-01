@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getRubros } from '@/src/lib/db/rubros'
 import type { Rubro } from '@prisma/client'
+import { copyRubroAction } from './actions'
 
 const getStatusLabel = (status: Rubro['status']) => {
   switch (status) {
@@ -81,12 +82,23 @@ export default async function RubrosPage() {
                   <td className="px-4 py-4 text-sm text-zinc-700">{getStatusLabel(rubro.status)}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{getCalculationStatusLabel(rubro.calculationStatus)}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">
-                    <Link
-                      href={`/rubros/${rubro.id}/edit`}
-                      className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
-                    >
-                      Editar
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/rubros/${rubro.id}/edit`}
+                        className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                      >
+                        Editar
+                      </Link>
+                      <form action={copyRubroAction} className="inline">
+                        <input type="hidden" name="id" value={rubro.id} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          Crear copia
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

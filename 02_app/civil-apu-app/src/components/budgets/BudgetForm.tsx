@@ -57,6 +57,17 @@ export default function BudgetForm({ action, submitLabel, initialData, hiddenId,
         </label>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
+          Costos indirectos (%)
+          <input
+            name="indirectPercentage"
+            defaultValue={initialData?.indirectPercentage?.toString() ?? '0'}
+            required
+            inputMode="decimal"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </label>
+
+        <label className="space-y-2 text-sm font-medium text-zinc-700">
           IVA (%)
           <input
             name="ivaPercentage"

@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createLabor, updateLabor, toggleLaborActive } from '@/src/lib/db/labor'
+import { copyLabor, createLabor, updateLabor, toggleLaborActive } from '@/src/lib/db/labor'
 import { validateLaborInput } from '@/src/lib/validations/labor'
 
 export async function toggleLaborActiveAction(formData: FormData) {
@@ -41,4 +41,14 @@ export async function updateLaborAction(formData: FormData) {
 
   await updateLabor(id, parsed)
   redirect('/labor')
+}
+
+export async function copyLaborAction(formData: FormData) {
+  const id = formData.get('id')
+  if (typeof id !== 'string') {
+    throw new Error('Invalid labor id')
+  }
+
+  const copied = await copyLabor(id)
+  redirect(`/labor/${copied.id}/edit`)
 }

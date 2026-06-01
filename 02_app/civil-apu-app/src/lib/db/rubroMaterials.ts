@@ -51,6 +51,34 @@ export async function addRubroMaterial(params: {
   })
 }
 
+export async function updateRubroMaterial(params: {
+  id: string
+  rubroId: string
+  quantity: number
+  unit?: string
+  unitCostSnapshot: number
+  notes?: string
+}): Promise<RubroMaterial> {
+  const totalCost = calculateMaterialCost(params.quantity, params.unitCostSnapshot)
+
+  return prisma.$transaction(async (tx) => {
+    const rubroMaterial = await tx.rubroMaterial.update({
+      where: { id: params.id },
+      data: {
+        quantity: params.quantity,
+        unit: params.unit?.trim() || undefined,
+        unitCostSnapshot: params.unitCostSnapshot,
+        totalCost,
+        notes: params.notes?.trim() || undefined,
+      },
+    })
+
+    await updateRubroTotals(params.rubroId, tx)
+
+    return rubroMaterial
+  })
+}
+
 export async function deleteRubroMaterial(id: string): Promise<void> {
   const existing = await prisma.rubroMaterial.findUnique({
     where: { id },

@@ -58,6 +58,39 @@ export async function addRubroLabor(params: {
   })
 }
 
+export async function updateRubroLabor(params: {
+  id: string
+  rubroId: string
+  workerQuantity: number
+  timeRequired: number
+  hourlyCostSnapshot: number
+  notes?: string
+}): Promise<RubroLabor> {
+  const totalCost = calculateLaborCost({
+    workerQuantity: params.workerQuantity,
+    hourlyCost: params.hourlyCostSnapshot,
+    timeRequired: params.timeRequired,
+    performanceMode: 'MANUAL_TIME',
+  })
+
+  return prisma.$transaction(async (tx) => {
+    const rubroLabor = await tx.rubroLabor.update({
+      where: { id: params.id },
+      data: {
+        workerQuantity: params.workerQuantity,
+        hourlyCostSnapshot: params.hourlyCostSnapshot,
+        timeRequired: params.timeRequired,
+        totalCost,
+        notes: params.notes?.trim() || undefined,
+      },
+    })
+
+    await updateRubroTotals(params.rubroId, tx)
+
+    return rubroLabor
+  })
+}
+
 export async function deleteRubroLabor(id: string): Promise<void> {
   const existing = await prisma.rubroLabor.findUnique({
     where: { id },

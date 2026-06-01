@@ -40,6 +40,36 @@ export async function addRubroTransport(params: {
   })
 }
 
+export async function updateRubroTransport(params: {
+  id: string
+  rubroId: string
+  description: string
+  unit: string
+  quantity: number
+  unitCost: number
+  notes?: string
+}): Promise<RubroTransport> {
+  const totalCost = calculateTransportCost(params.quantity, params.unitCost)
+
+  return prisma.$transaction(async (tx) => {
+    const rubroTransport = await tx.rubroTransport.update({
+      where: { id: params.id },
+      data: {
+        description: params.description,
+        unit: params.unit,
+        quantity: params.quantity,
+        unitCost: params.unitCost,
+        totalCost,
+        notes: params.notes?.trim() || undefined,
+      },
+    })
+
+    await updateRubroTotals(params.rubroId, tx)
+
+    return rubroTransport
+  })
+}
+
 export async function deleteRubroTransport(id: string): Promise<void> {
   const existing = await prisma.rubroTransport.findUnique({
     where: { id },

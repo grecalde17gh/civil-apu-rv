@@ -1,0 +1,5 @@
+ALTER TABLE "BudgetItem"
+ADD COLUMN "indirectPercentageApplied" DECIMAL(8,4) NOT NULL DEFAULT 0,
+ADD COLUMN "directCostSnapshot" DECIMAL(12,4) NOT NULL DEFAULT 0,
+ADD COLUMN "indirectCostSnapshot" DECIMAL(12,4) NOT NULL DEFAULT 0,
+ADD COLUMN "subtotalSnapshot" DECIMAL(12,4) NOT NULL DEFAULT 0;

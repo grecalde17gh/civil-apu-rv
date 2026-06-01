@@ -5,6 +5,8 @@ type RubroFormProps = {
   initialData?: Partial<RubroFormInput>
   submitLabel: string
   hiddenId?: string
+  hiddenBudgetId?: string
+  hiddenProjectId?: string
 }
 
 const rubroStatusOptions = [
@@ -20,7 +22,7 @@ const calculationStatusOptions = [
   { value: 'ERROR', label: 'Error' },
 ]
 
-export default function RubroForm({ action, initialData, submitLabel, hiddenId }: RubroFormProps) {
+export default function RubroForm({ action, initialData, submitLabel, hiddenId, hiddenBudgetId, hiddenProjectId }: RubroFormProps) {
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -143,6 +145,8 @@ export default function RubroForm({ action, initialData, submitLabel, hiddenId }
       </div>
 
       {hiddenId ? <input type="hidden" name="id" value={hiddenId} /> : null}
+      {hiddenBudgetId ? <input type="hidden" name="budgetId" value={hiddenBudgetId} /> : null}
+      {hiddenProjectId ? <input type="hidden" name="projectId" value={hiddenProjectId} /> : null}
 
       <div className="flex items-center justify-end gap-3 pt-2">
         <button

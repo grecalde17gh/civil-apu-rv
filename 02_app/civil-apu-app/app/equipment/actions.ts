@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createEquipment, updateEquipment, toggleEquipmentActive } from '@/src/lib/db/equipment'
+import { copyEquipment, createEquipment, updateEquipment, toggleEquipmentActive } from '@/src/lib/db/equipment'
 import { validateEquipmentInput } from '@/src/lib/validations/equipment'
 
 export async function toggleEquipmentActiveAction(formData: FormData) {
@@ -43,4 +43,14 @@ export async function updateEquipmentAction(formData: FormData) {
 
   await updateEquipment(id, parsed)
   redirect('/equipment')
+}
+
+export async function copyEquipmentAction(formData: FormData) {
+  const id = formData.get('id')
+  if (typeof id !== 'string') {
+    throw new Error('Invalid equipment id')
+  }
+
+  const copied = await copyEquipment(id)
+  redirect(`/equipment/${copied.id}/edit`)
 }

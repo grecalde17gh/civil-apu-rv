@@ -1,22 +1,44 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createRubro, updateRubro } from '@/src/lib/db/rubros'
+import { copyRubro, createRubro, updateRubro } from '@/src/lib/db/rubros'
+import { getBudgetById } from '@/src/lib/db/budgets'
 import { validateRubroInput } from '@/src/lib/validations/rubro'
-import { addRubroMaterial, deleteRubroMaterial } from '@/src/lib/db/rubroMaterials'
-import { validateRubroMaterialInput } from '@/src/lib/validations/rubroMaterial'
-import { addRubroLabor, deleteRubroLabor } from '@/src/lib/db/rubroLabor'
-import { validateRubroLaborInput } from '@/src/lib/validations/rubroLabor'
-import { addRubroEquipment, deleteRubroEquipment } from '@/src/lib/db/rubroEquipment'
-import { validateRubroEquipmentInput } from '@/src/lib/validations/rubroEquipment'
-import { addRubroTransport, deleteRubroTransport } from '@/src/lib/db/rubroTransport'
-import { validateRubroTransportInput } from '@/src/lib/validations/rubroTransport'
+import { addRubroMaterial, deleteRubroMaterial, updateRubroMaterial } from '@/src/lib/db/rubroMaterials'
+import { validateRubroMaterialInput, validateRubroMaterialUpdateInput } from '@/src/lib/validations/rubroMaterial'
+import { addRubroLabor, deleteRubroLabor, updateRubroLabor } from '@/src/lib/db/rubroLabor'
+import { validateRubroLaborInput, validateRubroLaborUpdateInput } from '@/src/lib/validations/rubroLabor'
+import { addRubroEquipment, deleteRubroEquipment, updateRubroEquipment } from '@/src/lib/db/rubroEquipment'
+import { validateRubroEquipmentInput, validateRubroEquipmentUpdateInput } from '@/src/lib/validations/rubroEquipment'
+import { addRubroTransport, deleteRubroTransport, updateRubroTransport } from '@/src/lib/db/rubroTransport'
+import { validateRubroTransportInput, validateRubroTransportUpdateInput } from '@/src/lib/validations/rubroTransport'
 
 export async function createRubroAction(formData: FormData) {
   const data = Object.fromEntries(formData)
+  const budgetId = formData.get('budgetId')
+  const rawIndirectPercentage = formData.get('indirectPercentage')
+
+  if (
+    typeof budgetId === 'string' &&
+    budgetId.trim() !== '' &&
+    (rawIndirectPercentage === null || (typeof rawIndirectPercentage === 'string' && rawIndirectPercentage.trim() === ''))
+  ) {
+    const budget = await getBudgetById(budgetId)
+    if (!budget) {
+      throw new Error('Presupuesto no encontrado')
+    }
+
+    data.indirectPercentage = budget.indirectPercentage?.toString() ?? '0'
+  }
+
   const parsed = validateRubroInput(data)
 
-  await createRubro(parsed)
+  const rubro = await createRubro(parsed)
+
+  if (typeof budgetId === 'string' && budgetId.trim() !== '') {
+    redirect(`/rubros/${rubro.id}/edit?budgetId=${budgetId}`)
+  }
+
   redirect('/rubros')
 }
 
@@ -31,6 +53,16 @@ export async function updateRubroAction(formData: FormData) {
 
   await updateRubro(id, parsed)
   redirect('/rubros')
+}
+
+export async function copyRubroAction(formData: FormData) {
+  const id = formData.get('id')
+  if (typeof id !== 'string') {
+    throw new Error('Invalid rubro id')
+  }
+
+  const copied = await copyRubro(id)
+  redirect(`/rubros/${copied.id}/edit`)
 }
 
 export async function addRubroMaterialAction(formData: FormData) {
@@ -51,6 +83,14 @@ export async function deleteRubroMaterialAction(formData: FormData) {
 
   await deleteRubroMaterial(id)
   redirect(`/rubros/${rubroId}/edit`)
+}
+
+export async function updateRubroMaterialAction(formData: FormData) {
+  const data = Object.fromEntries(formData)
+  const parsed = validateRubroMaterialUpdateInput(data)
+
+  await updateRubroMaterial(parsed)
+  redirect(`/rubros/${parsed.rubroId}/edit`)
 }
 
 export async function addRubroLaborAction(formData: FormData) {
@@ -74,6 +114,30 @@ export async function addRubroTransportAction(formData: FormData) {
   const parsed = validateRubroTransportInput(data)
 
   await addRubroTransport(parsed)
+  redirect(`/rubros/${parsed.rubroId}/edit`)
+}
+
+export async function updateRubroLaborAction(formData: FormData) {
+  const data = Object.fromEntries(formData)
+  const parsed = validateRubroLaborUpdateInput(data)
+
+  await updateRubroLabor(parsed)
+  redirect(`/rubros/${parsed.rubroId}/edit`)
+}
+
+export async function updateRubroEquipmentAction(formData: FormData) {
+  const data = Object.fromEntries(formData)
+  const parsed = validateRubroEquipmentUpdateInput(data)
+
+  await updateRubroEquipment(parsed)
+  redirect(`/rubros/${parsed.rubroId}/edit`)
+}
+
+export async function updateRubroTransportAction(formData: FormData) {
+  const data = Object.fromEntries(formData)
+  const parsed = validateRubroTransportUpdateInput(data)
+
+  await updateRubroTransport(parsed)
   redirect(`/rubros/${parsed.rubroId}/edit`)
 }
 

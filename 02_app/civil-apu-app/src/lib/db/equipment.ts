@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import type { EquipmentItem } from '@prisma/client'
+import { buildCopyName, generateCopyCode } from './copy'
 
 export type EquipmentFormInput = {
   code?: string
@@ -71,5 +72,35 @@ export async function toggleEquipmentActive(id: string, isActive: boolean): Prom
   return prisma.equipmentItem.update({
     where: { id },
     data: { isActive },
+  })
+}
+
+export async function copyEquipment(id: string): Promise<EquipmentItem> {
+  const equipment = await getEquipmentById(id)
+
+  if (!equipment) {
+    throw new Error('Equipo no encontrado')
+  }
+
+  const code = await generateCopyCode(equipment.code, async (candidate) => {
+    const existing = await prisma.equipmentItem.findFirst({ where: { code: candidate }, select: { id: true } })
+    return existing !== null
+  })
+
+  return prisma.equipmentItem.create({
+    data: {
+      code,
+      description: buildCopyName(equipment.description),
+      equipmentType: equipment.equipmentType,
+      hourlyRate: equipment.hourlyRate,
+      dailyRate: equipment.dailyRate,
+      purchaseCost: equipment.purchaseCost,
+      maintenanceRequired: equipment.maintenanceRequired,
+      maintenanceNotes: equipment.maintenanceNotes,
+      cpc: equipment.cpc,
+      vae: equipment.vae,
+      priceDate: equipment.priceDate,
+      isActive: equipment.isActive,
+    },
   })
 }

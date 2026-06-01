@@ -39,6 +39,7 @@ export const budgetFormSchema = z.object({
   code: optionalString,
   name: nonEmptyString,
   status: budgetStatusSchema.default('DRAFT'),
+  indirectPercentage: percentNumber.default(0),
   ivaPercentage: percentNumber.default(0),
   notes: optionalString,
   issuedAt: optionalDate,

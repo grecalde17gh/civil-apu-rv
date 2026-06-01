@@ -20,6 +20,7 @@ export default async function NewBudgetPage({ params }: NewBudgetPageProps) {
 
   const initialData = {
     status: 'DRAFT' as const,
+    indirectPercentage: Number(project.defaultIndirectPercentage?.toString() ?? '20'),
     ivaPercentage: Number(project.defaultIvaPercentage?.toString() ?? '0'),
   }
 

@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import type { LaborItem } from '@prisma/client'
+import { buildCopyName, generateCopyCode } from './copy'
 
 export type LaborFormInput = {
   code?: string
@@ -68,5 +69,34 @@ export async function toggleLaborActive(id: string, isActive: boolean): Promise<
   return prisma.laborItem.update({
     where: { id },
     data: { isActive },
+  })
+}
+
+export async function copyLabor(id: string): Promise<LaborItem> {
+  const labor = await getLaborById(id)
+
+  if (!labor) {
+    throw new Error('Mano de obra no encontrada')
+  }
+
+  const code = await generateCopyCode(labor.code, async (candidate) => {
+    const existing = await prisma.laborItem.findFirst({ where: { code: candidate }, select: { id: true } })
+    return existing !== null
+  })
+
+  return prisma.laborItem.create({
+    data: {
+      code,
+      roleName: buildCopyName(labor.roleName),
+      hourlyCost: labor.hourlyCost,
+      dailyCost: labor.dailyCost,
+      competencies: labor.competencies,
+      availability: labor.availability,
+      cpc: labor.cpc,
+      vae: labor.vae,
+      category: labor.category,
+      priceDate: labor.priceDate,
+      isActive: labor.isActive,
+    },
   })
 }

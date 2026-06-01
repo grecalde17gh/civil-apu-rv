@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getLaborItems } from '@/src/lib/db/labor'
 import type { LaborItem } from '@prisma/client'
-import { toggleLaborActiveAction } from './actions'
+import { copyLaborAction, toggleLaborActiveAction } from './actions'
 
 export default async function LaborPage() {
   const items = await getLaborItems()
@@ -71,6 +71,15 @@ export default async function LaborPage() {
                           className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800"
                         >
                           {item.isActive ? 'Desactivar' : 'Activar'}
+                        </button>
+                      </form>
+                      <form action={copyLaborAction} className="inline">
+                        <input type="hidden" name="id" value={item.id} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          Crear copia
                         </button>
                       </form>
                     </div>

@@ -26,7 +26,7 @@ export default async function EditProjectPage({ params }: ProjectEditPageProps) 
     city: project.city ?? undefined,
     startDate: project.startDate ?? undefined,
     endDate: project.endDate ?? undefined,
-    defaultIndirectPercentage: Number(project.defaultIndirectPercentage.toString()),
+    defaultIndirectPercentage: Number(project.defaultIndirectPercentage?.toString() ?? '20'),
     notes: project.notes ?? undefined,
     status: project.status,
   }

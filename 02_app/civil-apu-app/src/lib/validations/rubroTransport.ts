@@ -26,3 +26,19 @@ export type RubroTransportFormInput = z.infer<typeof rubroTransportFormSchema>
 export function validateRubroTransportInput(data: unknown): RubroTransportFormInput {
   return rubroTransportFormSchema.parse(data)
 }
+
+export const rubroTransportUpdateSchema = z.object({
+  id: nonEmptyString,
+  rubroId: nonEmptyString,
+  description: nonEmptyString,
+  unit: nonEmptyString,
+  quantity: positiveNumber,
+  unitCost: positiveNumber,
+  notes: z.string().trim().optional(),
+})
+
+export type RubroTransportUpdateInput = z.infer<typeof rubroTransportUpdateSchema>
+
+export function validateRubroTransportUpdateInput(data: unknown): RubroTransportUpdateInput {
+  return rubroTransportUpdateSchema.parse(data)
+}

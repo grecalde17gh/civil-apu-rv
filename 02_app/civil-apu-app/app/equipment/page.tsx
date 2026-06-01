@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getEquipmentItems } from '@/src/lib/db/equipment'
 import type { EquipmentItem } from '@prisma/client'
-import { toggleEquipmentActiveAction } from './actions'
+import { copyEquipmentAction, toggleEquipmentActiveAction } from './actions'
 
 export default async function EquipmentPage() {
   const items = await getEquipmentItems()
@@ -73,6 +73,15 @@ export default async function EquipmentPage() {
                           className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800"
                         >
                           {item.isActive ? 'Desactivar' : 'Activar'}
+                        </button>
+                      </form>
+                      <form action={copyEquipmentAction} className="inline">
+                        <input type="hidden" name="id" value={item.id} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          Crear copia
                         </button>
                       </form>
                     </div>

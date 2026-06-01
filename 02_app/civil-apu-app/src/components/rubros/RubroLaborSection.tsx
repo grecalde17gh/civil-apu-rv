@@ -1,6 +1,6 @@
 import type { LaborItem } from '@prisma/client'
 import type { RubroLaborWithLabor } from '@/src/lib/db/rubroLabor'
-import { addRubroLaborAction, deleteRubroLaborAction } from '@/app/rubros/actions'
+import { addRubroLaborAction, deleteRubroLaborAction, updateRubroLaborAction } from '@/app/rubros/actions'
 
 type RubroLaborSectionProps = {
   rubroId: string
@@ -102,6 +102,34 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                   <td className="px-4 py-4 text-sm text-zinc-700">{line.totalCost.toString()}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">{line.notes ?? '-'}</td>
                   <td className="px-4 py-4 text-sm text-zinc-700">
+                    <details className="mb-2">
+                      <summary className="cursor-pointer rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100">
+                        Editar
+                      </summary>
+                      <form action={updateRubroLaborAction} className="mt-3 grid min-w-64 gap-2">
+                        <input type="hidden" name="id" value={line.id} />
+                        <input type="hidden" name="rubroId" value={rubroId} />
+                        <label className="text-xs font-medium text-zinc-600">
+                          Cantidad
+                          <input name="workerQuantity" defaultValue={line.workerQuantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Horas
+                          <input name="timeRequired" defaultValue={line.timeRequired?.toString() ?? '0'} required inputMode="decimal" className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Costo hora
+                          <input name="hourlyCostSnapshot" defaultValue={line.hourlyCostSnapshot.toString()} required inputMode="decimal" className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-zinc-600">
+                          Notas
+                          <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm" />
+                        </label>
+                        <button type="submit" className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-zinc-800">
+                          Guardar
+                        </button>
+                      </form>
+                    </details>
                     <form action={deleteRubroLaborAction} className="inline">
                       <input type="hidden" name="id" value={line.id} />
                       <input type="hidden" name="rubroId" value={rubroId} />
