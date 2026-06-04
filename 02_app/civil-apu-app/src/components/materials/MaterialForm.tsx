@@ -12,9 +12,10 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Código
+          Codigo
           <input
             name="code"
+            placeholder="MAT-001"
             defaultValue={initialData?.code ?? ''}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />
@@ -32,7 +33,7 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
       </div>
 
       <label className="space-y-2 text-sm font-medium text-zinc-700">
-        Descripción
+        Descripcion
         <input
           name="description"
           defaultValue={initialData?.description ?? ''}
@@ -41,28 +42,16 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
         />
       </label>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Costo unitario
-          <input
-            name="unitCost"
-            defaultValue={initialData?.unitCost?.toString() ?? ''}
-            required
-            inputMode="decimal"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
-
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Cantidad en stock
-          <input
-            name="stockQuantity"
-            defaultValue={initialData?.stockQuantity?.toString() ?? ''}
-            inputMode="decimal"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
-      </div>
+      <label className="space-y-2 text-sm font-medium text-zinc-700">
+        Costo unitario
+        <input
+          name="unitCost"
+          defaultValue={initialData?.unitCost?.toString() ?? ''}
+          required
+          inputMode="decimal"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+        />
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
@@ -86,22 +75,24 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Categoría
+        <label className="flex items-center gap-3 text-sm font-medium text-zinc-700">
           <input
-            name="category"
-            defaultValue={initialData?.category ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            name="usesCategory1"
+            type="checkbox"
+            defaultChecked={initialData?.usesCategory1 ?? false}
+            className="h-4 w-4 rounded border-zinc-300 text-zinc-700"
           />
+          Participa en Categoria 1
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Fuente
+        <label className="flex items-center gap-3 text-sm font-medium text-zinc-700">
           <input
-            name="source"
-            defaultValue={initialData?.source ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            name="usesCategory2"
+            type="checkbox"
+            defaultChecked={initialData?.usesCategory2 ?? false}
+            className="h-4 w-4 rounded border-zinc-300 text-zinc-700"
           />
+          Participa en Categoria 2
         </label>
       </div>
 

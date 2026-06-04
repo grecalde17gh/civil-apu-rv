@@ -2,6 +2,7 @@ import { prisma } from './prisma'
 import type { Prisma, Rubro } from '@prisma/client'
 import type { RubroFormInput } from '@/src/lib/validations/rubro'
 import { calculateDirectCost, calculateIndirectCost, calculateUnitPrice } from '@/src/lib/calculations/apu'
+import { generateNextCatalogCode } from '../catalogCodes'
 import { buildCopyName, generateCopyCode } from './copy'
 
 export async function getRubros(): Promise<Rubro[]> {
@@ -84,6 +85,13 @@ export async function copyRubro(id: string): Promise<Rubro> {
     throw new Error('No se pudo generar codigo para la copia del rubro')
   }
 
+  const existingTransportCodes = (await prisma.rubroTransport.findMany({ select: { code: true } })).map((line) => line.code)
+  const copiedTransportCodes = rubro.transport.map(() => {
+    const nextCode = generateNextCatalogCode(existingTransportCodes, 'TR')
+    existingTransportCodes.push(nextCode)
+    return nextCode
+  })
+
   return prisma.$transaction(async (tx) => {
     const copied = await tx.rubro.create({
       data: {
@@ -137,7 +145,8 @@ export async function copyRubro(id: string): Promise<Rubro> {
           })),
         },
         transport: {
-          create: rubro.transport.map((line) => ({
+          create: rubro.transport.map((line, index) => ({
+            code: copiedTransportCodes[index],
             description: line.description,
             unit: line.unit,
             quantity: line.quantity,

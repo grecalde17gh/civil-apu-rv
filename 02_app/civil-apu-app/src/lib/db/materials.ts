@@ -1,17 +1,17 @@
 import { prisma } from './prisma'
 import type { Material } from '@prisma/client'
-import { buildCopyName, generateCopyCode } from './copy'
+import { generateNextCatalogCode } from '../catalogCodes'
+import { buildCopyName } from './copy'
 
 export type MaterialFormInput = {
   code?: string
   description: string
   unit: string
   unitCost: number
-  stockQuantity?: number
   cpc?: string
   vae?: number
-  category?: string
-  source?: string
+  usesCategory1: boolean
+  usesCategory2: boolean
   priceDate?: Date
   isActive: boolean
 }
@@ -29,17 +29,18 @@ export async function getMaterialById(id: string): Promise<Material | null> {
 }
 
 export async function createMaterial(data: MaterialFormInput): Promise<Material> {
+  const code = data.code || (await generateNextMaterialCode())
+
   return prisma.material.create({
     data: {
-      code: data.code || undefined,
+      code,
       description: data.description,
       unit: data.unit,
       unitCost: data.unitCost,
-      stockQuantity: data.stockQuantity ?? undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
-      category: data.category || undefined,
-      source: data.source || undefined,
+      usesCategory1: data.usesCategory1,
+      usesCategory2: data.usesCategory2,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -54,11 +55,10 @@ export async function updateMaterial(id: string, data: MaterialFormInput): Promi
       description: data.description,
       unit: data.unit,
       unitCost: data.unitCost,
-      stockQuantity: data.stockQuantity ?? undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
-      category: data.category || undefined,
-      source: data.source || undefined,
+      usesCategory1: data.usesCategory1,
+      usesCategory2: data.usesCategory2,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -79,10 +79,7 @@ export async function copyMaterial(id: string): Promise<Material> {
     throw new Error('Material no encontrado')
   }
 
-  const code = await generateCopyCode(material.code, async (candidate) => {
-    const existing = await prisma.material.findFirst({ where: { code: candidate }, select: { id: true } })
-    return existing !== null
-  })
+  const code = await generateNextMaterialCode()
 
   return prisma.material.create({
     data: {
@@ -90,13 +87,17 @@ export async function copyMaterial(id: string): Promise<Material> {
       description: buildCopyName(material.description),
       unit: material.unit,
       unitCost: material.unitCost,
-      stockQuantity: material.stockQuantity,
       cpc: material.cpc,
       vae: material.vae,
-      category: material.category,
-      source: material.source,
+      usesCategory1: material.usesCategory1,
+      usesCategory2: material.usesCategory2,
       priceDate: material.priceDate,
       isActive: material.isActive,
     },
   })
+}
+
+async function generateNextMaterialCode(): Promise<string> {
+  const materials = await prisma.material.findMany({ select: { code: true } })
+  return generateNextCatalogCode(materials.map((material) => material.code), 'MAT')
 }

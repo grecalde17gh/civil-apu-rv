@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCatalogCode } from '../catalogCodes'
 
 const nonEmptyString = z.string().trim().min(1)
 
@@ -35,15 +36,16 @@ const optionalDate = z.preprocess((value) => {
 }, z.date().optional())
 
 export const materialFormSchema = z.object({
-  code: z.string().trim().optional(),
+  code: z.string().trim().optional().refine((code) => !code || isValidCatalogCode(code, 'MAT'), {
+    message: 'El codigo debe tener el formato MAT-001',
+  }),
   description: nonEmptyString,
   unit: nonEmptyString,
   unitCost: nonNegativeNumber,
-  stockQuantity: optionalNonNegativeNumber,
   cpc: z.string().trim().optional(),
   vae: optionalNonNegativeNumber,
-  category: z.string().trim().optional(),
-  source: z.string().trim().optional(),
+  usesCategory1: z.boolean().default(false),
+  usesCategory2: z.boolean().default(false),
   priceDate: optionalDate,
   isActive: z.boolean().default(true),
 })

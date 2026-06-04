@@ -26,17 +26,13 @@ export default async function EditMaterialPage({ params }: MaterialPageProps) {
     description: material.description,
     unit: material.unit,
     unitCost: Number(material.unitCost.toString()),
-    stockQuantity:
-      material.stockQuantity !== null && material.stockQuantity !== undefined
-        ? Number(material.stockQuantity.toString())
-        : undefined,
     cpc: material.cpc ?? undefined,
     vae:
       material.vae !== null && material.vae !== undefined
         ? Number(material.vae.toString())
         : undefined,
-    category: material.category ?? undefined,
-    source: material.source ?? undefined,
+    usesCategory1: material.usesCategory1,
+    usesCategory2: material.usesCategory2,
     priceDate: material.priceDate ?? undefined,
     isActive: material.isActive,
   }
@@ -57,7 +53,12 @@ export default async function EditMaterialPage({ params }: MaterialPageProps) {
           </Link>
         </div>
 
-        <MaterialForm action={updateMaterialAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} />
+        <MaterialForm
+          action={updateMaterialAction}
+          submitLabel="Guardar cambios"
+          initialData={initialData}
+          hiddenId={id}
+        />
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import parseMaterialsSheetFromBuffer from './excelParser'
-import { validateMaterialRow, MaterialImportRow } from '@/src/lib/validations/materialImport'
+import { validateMaterialRow, type MaterialImportRow } from '@/src/lib/validations/materialImport'
 import { createMaterial, updateMaterial } from '@/src/lib/db/materials'
 import { prisma } from '@/src/lib/db/prisma'
 
@@ -18,8 +18,6 @@ export async function previewMaterialsFromBuffer(buffer: ArrayBuffer): Promise<P
       Description: r.Description ?? null,
       Unit: r.Unit ?? null,
       UnitPrice: r.UnitPrice ?? null,
-      Category: r.Category ?? null,
-      Source: r.Source ?? null,
       Note: r.Note ?? null,
       IsActive: r.IsActive ?? null,
     }
@@ -34,15 +32,13 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<{
   let updated = 0
 
   for (const r of rows) {
-    // skip invalid rows
-    if (!r.Description || !r.Unit || r.UnitPrice == null) continue
+    if (!validateMaterialRow(r).valid) continue
 
     const code = r.Code && String(r.Code).trim() !== '' ? String(r.Code).trim() : undefined
 
-    // Find existing material by code (code is not unique in schema)
     let existing = null
     if (code) {
-      existing = await prisma.material.findFirst({ where: { code } })
+      existing = await prisma.material.findUnique({ where: { code } })
     }
 
     const payload = {
@@ -50,8 +46,8 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<{
       description: String(r.Description),
       unit: String(r.Unit),
       unitCost: Number(r.UnitPrice),
-      category: r.Category ?? undefined,
-      source: r.Source ?? undefined,
+      usesCategory1: false,
+      usesCategory2: false,
       isActive: r.IsActive ?? true,
     }
 

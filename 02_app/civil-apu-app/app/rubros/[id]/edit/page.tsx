@@ -76,48 +76,99 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
   })
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Editar rubro</p>
-            <h1 className="mt-2 text-3xl font-semibold text-zinc-950">Actualizar datos generales</h1>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <form action={copyRubroAction}>
-              <input type="hidden" name="id" value={id} />
-              <button
-                type="submit"
-                className="inline-flex items-center rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+    <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
+      <div className="mx-auto max-w-[1680px]">
+        <div className="overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-900 px-4 py-3 text-white lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">Edicion de rubro / APU</p>
+              <h1 className="truncate text-xl font-semibold">{rubro.code} - {rubro.description}</h1>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-200">
+                <span>Unidad: {rubro.unit}</span>
+                <span>
+                  Rendimiento:{' '}
+                  {rubro.performanceValue ? `${rubro.performanceValue.toString()} ${rubro.performanceUnit ?? ''}` : '-'}
+                </span>
+                <span>
+                  Contexto:{' '}
+                  {highlightedContext
+                    ? `${highlightedContext.projectName} / ${highlightedContext.budgetName}`
+                    : 'Catalogo general'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <form action={copyRubroAction}>
+                <input type="hidden" name="id" value={id} />
+                <button
+                  type="submit"
+                  className="h-8 rounded border border-blue-300 bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800"
+                >
+                  Copiar
+                </button>
+              </form>
+              <Link
+                href={`/rubros/${id}/export`}
+                className="inline-flex h-8 items-center rounded border border-emerald-300 bg-emerald-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-emerald-800"
               >
-                Crear copia
-              </button>
-            </form>
-            <Link
-              href="/rubros"
-              className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
-            >
-              Volver a lista
-            </Link>
+                Exportar APU
+              </Link>
+              <Link
+                href="/rubros"
+                className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
+              >
+                Volver
+              </Link>
+            </div>
           </div>
+
+          <RubroForm
+            action={updateRubroAction}
+            submitLabel="Guardar"
+            initialData={initialData}
+            hiddenId={id}
+            variant="technical"
+          />
         </div>
 
-        <RubroForm action={updateRubroAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} />
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <main className="min-w-0 space-y-4">
+            <nav className="sticky top-0 z-10 flex overflow-x-auto rounded border border-slate-300 bg-white shadow-sm">
+              {[
+                { href: '#materiales', label: 'Materiales' },
+                { href: '#mano-obra', label: 'Mano de obra' },
+                { href: '#equipos', label: 'Equipos' },
+                { href: '#transporte', label: 'Transporte' },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="border-r border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
 
-        <div className="mt-10 space-y-10">
-          <RubroUsageContext contexts={orderedUsageContexts} />
-          <RubroTotalsPanel
-            materialsSubtotal={totals.materialsSubtotal}
-            laborSubtotal={totals.laborSubtotal}
-            equipmentSubtotal={totals.equipmentSubtotal}
-            transportSubtotal={totals.transportSubtotal}
-            directCost={totals.directCost}
-            indirectPercentage={Number(rubro.indirectPercentage.toString())}
-          />
-          <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} />
-          <RubroLaborSection rubroId={id} laborItems={laborItems} rubroLabor={rubroLabor} />
-          <RubroEquipmentSection rubroId={id} equipmentItems={equipmentItems} rubroEquipment={rubroEquipment} />
-          <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} />
+            <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} />
+            <RubroLaborSection rubroId={id} laborItems={laborItems} rubroLabor={rubroLabor} />
+            <RubroEquipmentSection rubroId={id} equipmentItems={equipmentItems} rubroEquipment={rubroEquipment} />
+            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} />
+            <RubroUsageContext contexts={orderedUsageContexts} />
+          </main>
+
+          <div className="space-y-4">
+            <RubroTotalsPanel
+              materialsSubtotal={totals.materialsSubtotal}
+              laborSubtotal={totals.laborSubtotal}
+              equipmentSubtotal={totals.equipmentSubtotal}
+              transportSubtotal={totals.transportSubtotal}
+              directCost={totals.directCost}
+              indirectPercentage={Number(rubro.indirectPercentage.toString())}
+              variant="sidebar"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import type { EquipmentItem } from '@prisma/client'
-import { buildCopyName, generateCopyCode } from './copy'
+import { generateNextCatalogCode } from '../catalogCodes'
+import { buildCopyName } from './copy'
 
 export type EquipmentFormInput = {
   code?: string
@@ -30,9 +31,11 @@ export async function getEquipmentById(id: string): Promise<EquipmentItem | null
 }
 
 export async function createEquipment(data: EquipmentFormInput): Promise<EquipmentItem> {
+  const code = data.code || (await generateNextEquipmentCode())
+
   return prisma.equipmentItem.create({
     data: {
-      code: data.code || undefined,
+      code,
       description: data.description,
       equipmentType: data.equipmentType || undefined,
       hourlyRate: data.hourlyRate ?? undefined,
@@ -82,10 +85,7 @@ export async function copyEquipment(id: string): Promise<EquipmentItem> {
     throw new Error('Equipo no encontrado')
   }
 
-  const code = await generateCopyCode(equipment.code, async (candidate) => {
-    const existing = await prisma.equipmentItem.findFirst({ where: { code: candidate }, select: { id: true } })
-    return existing !== null
-  })
+  const code = await generateNextEquipmentCode()
 
   return prisma.equipmentItem.create({
     data: {
@@ -103,4 +103,9 @@ export async function copyEquipment(id: string): Promise<EquipmentItem> {
       isActive: equipment.isActive,
     },
   })
+}
+
+async function generateNextEquipmentCode(): Promise<string> {
+  const equipment = await prisma.equipmentItem.findMany({ select: { code: true } })
+  return generateNextCatalogCode(equipment.map((item) => item.code), 'EQ')
 }

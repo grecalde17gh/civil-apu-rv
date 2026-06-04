@@ -23,6 +23,34 @@ export async function getBudgetByIdWithProject(budgetId: string) {
   })
 }
 
+export async function getBudgetByIdForEdit(budgetId: string) {
+  return prisma.budget.findUnique({
+    where: { id: budgetId },
+    include: {
+      project: true,
+      items: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          rubro: {
+            include: {
+              materials: {
+                include: { material: true },
+              },
+              labor: {
+                include: { laborItem: true },
+              },
+              equipment: {
+                include: { equipmentItem: true },
+              },
+              transport: true,
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
 export async function getBudgetItemsByBudgetId(budgetId: string): Promise<BudgetItem[]> {
   return prisma.budgetItem.findMany({
     where: { budgetId },

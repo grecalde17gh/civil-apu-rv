@@ -6,6 +6,7 @@ type BudgetFormProps = {
   initialData?: Partial<BudgetFormInput>
   hiddenId?: string
   hiddenProjectId?: string
+  variant?: 'default' | 'technical'
 }
 
 const budgetStatusOptions = [
@@ -15,7 +16,112 @@ const budgetStatusOptions = [
   { value: 'ARCHIVED', label: 'Archivado' },
 ]
 
-export default function BudgetForm({ action, submitLabel, initialData, hiddenId, hiddenProjectId }: BudgetFormProps) {
+export default function BudgetForm({
+  action,
+  submitLabel,
+  initialData,
+  hiddenId,
+  hiddenProjectId,
+  variant = 'default',
+}: BudgetFormProps) {
+  if (variant === 'technical') {
+    return (
+      <form action={action} className="border-t border-slate-200 bg-white">
+        <div className="grid gap-px bg-slate-200 lg:grid-cols-[130px_minmax(260px,1fr)_130px_120px_90px_130px_120px]">
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Codigo
+            <input
+              name="code"
+              defaultValue={initialData?.code ?? ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm font-semibold text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Presupuesto
+            <input
+              name="name"
+              defaultValue={initialData?.name ?? ''}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Estado
+            <select
+              name="status"
+              defaultValue={initialData?.status ?? 'DRAFT'}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950"
+            >
+              {budgetStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Indirectos %
+            <input
+              name="indirectPercentage"
+              defaultValue={initialData?.indirectPercentage?.toString() ?? '0'}
+              required
+              inputMode="decimal"
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm font-semibold text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            IVA %
+            <input
+              name="ivaPercentage"
+              defaultValue={initialData?.ivaPercentage?.toString() ?? '0'}
+              required
+              inputMode="decimal"
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Emision
+            <input
+              type="date"
+              name="issuedAt"
+              defaultValue={initialData?.issuedAt ? initialData.issuedAt.toISOString().slice(0, 10) : ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <div className="flex items-end bg-white px-3 py-2">
+            <button
+              type="submit"
+              className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800"
+            >
+              {submitLabel}
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 bg-slate-50 px-3 py-2">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Observacion
+            <input
+              name="notes"
+              defaultValue={initialData?.notes ?? ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+        </div>
+
+        {hiddenProjectId ? <input type="hidden" name="projectId" value={hiddenProjectId} /> : null}
+        {hiddenId ? <input type="hidden" name="id" value={hiddenId} /> : null}
+      </form>
+    )
+  }
+
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">

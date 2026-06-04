@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCatalogCode } from '../catalogCodes'
 
 const nonEmptyString = z.string().trim().min(1)
 
@@ -25,7 +26,9 @@ const optionalDate = z.preprocess((value) => {
 }, z.date().optional())
 
 export const equipmentFormSchema = z.object({
-  code: z.string().trim().optional(),
+  code: z.string().trim().optional().refine((code) => !code || isValidCatalogCode(code, 'EQ'), {
+    message: 'El codigo debe tener el formato EQ-001',
+  }),
   description: nonEmptyString,
   equipmentType: z.string().trim().optional(),
   hourlyRate: optionalNonNegativeNumber,

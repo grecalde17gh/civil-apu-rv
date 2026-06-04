@@ -7,8 +7,6 @@ export type RawMaterialRow = {
   Description?: string
   Unit?: string
   UnitPrice?: number | null
-  Category?: string
-  Source?: string
   Note?: string
   IsActive?: boolean
 }
@@ -50,12 +48,6 @@ export async function parseMaterialsSheetFromBuffer(buffer: ArrayBuffer): Promis
         case 'unitprice':
         case 'unit price':
           out.UnitPrice = parseDecimalString(trimmed)
-          break
-        case 'category':
-          out.Category = trimmed as string
-          break
-        case 'source':
-          out.Source = trimmed as string
           break
         case 'note':
           out.Note = trimmed as string

@@ -34,10 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-zinc-50">
-        <header className="border-b border-zinc-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <Link href="/" className="text-base font-semibold text-zinc-950">
+      <body className="min-h-full flex flex-col bg-slate-100">
+        <header className="border-b border-slate-300 bg-slate-900 text-white">
+          <nav className="mx-auto flex max-w-[1760px] flex-col gap-3 px-3 py-2 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+            <Link href="/" className="text-sm font-semibold uppercase tracking-wide text-white">
               Civil APU RV
             </Link>
             <div className="flex flex-wrap gap-2">
@@ -45,7 +45,7 @@ export default function RootLayout({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950"
+                  className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:border-blue-300 hover:bg-blue-700"
                 >
                   {link.label}
                 </Link>

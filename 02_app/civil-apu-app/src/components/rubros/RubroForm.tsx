@@ -7,6 +7,7 @@ type RubroFormProps = {
   hiddenId?: string
   hiddenBudgetId?: string
   hiddenProjectId?: string
+  variant?: 'default' | 'technical'
 }
 
 const rubroStatusOptions = [
@@ -22,7 +23,148 @@ const calculationStatusOptions = [
   { value: 'ERROR', label: 'Error' },
 ]
 
-export default function RubroForm({ action, initialData, submitLabel, hiddenId, hiddenBudgetId, hiddenProjectId }: RubroFormProps) {
+export default function RubroForm({
+  action,
+  initialData,
+  submitLabel,
+  hiddenId,
+  hiddenBudgetId,
+  hiddenProjectId,
+  variant = 'default',
+}: RubroFormProps) {
+  if (variant === 'technical') {
+    return (
+      <form action={action} className="border-t border-slate-200 bg-white">
+        <div className="grid gap-px bg-slate-200 md:grid-cols-[130px_minmax(260px,1fr)_90px_110px_120px_110px]">
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Codigo
+            <input
+              name="code"
+              defaultValue={initialData?.code ?? ''}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm font-semibold text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Descripcion
+            <input
+              name="description"
+              defaultValue={initialData?.description ?? ''}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Unidad
+            <input
+              name="unit"
+              defaultValue={initialData?.unit ?? ''}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Rendimiento
+            <input
+              name="performanceValue"
+              defaultValue={initialData?.performanceValue?.toString() ?? ''}
+              inputMode="decimal"
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Unidad rend.
+            <input
+              name="performanceUnit"
+              defaultValue={initialData?.performanceUnit ?? ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Indirectos %
+            <input
+              name="indirectPercentage"
+              defaultValue={initialData?.indirectPercentage?.toString() ?? '0'}
+              required
+              inputMode="decimal"
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm font-semibold text-slate-950"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-px border-t border-slate-200 bg-slate-200 md:grid-cols-[160px_160px_160px_minmax(240px,1fr)_130px]">
+          <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Categoria
+            <input
+              name="category"
+              defaultValue={initialData?.category ?? ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Estado
+            <select
+              name="status"
+              defaultValue={initialData?.status ?? 'DRAFT'}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950"
+            >
+              {rubroStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Calculo
+            <select
+              name="calculationStatus"
+              defaultValue={initialData?.calculationStatus ?? 'PENDING'}
+              required
+              className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950"
+            >
+              {calculationStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Observacion
+            <input
+              name="notes"
+              defaultValue={initialData?.notes ?? ''}
+              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
+            />
+          </label>
+
+          <div className="flex items-end bg-slate-50 px-3 py-2">
+            <button
+              type="submit"
+              className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800"
+            >
+              {submitLabel}
+            </button>
+          </div>
+        </div>
+
+        {hiddenId ? <input type="hidden" name="id" value={hiddenId} /> : null}
+        {hiddenBudgetId ? <input type="hidden" name="budgetId" value={hiddenBudgetId} /> : null}
+        {hiddenProjectId ? <input type="hidden" name="projectId" value={hiddenProjectId} /> : null}
+      </form>
+    )
+  }
+
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">

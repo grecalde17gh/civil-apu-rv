@@ -15,6 +15,7 @@ export default function LaborForm({ action, initialData, submitLabel, hiddenId }
           Código
           <input
             name="code"
+            placeholder="MO-001"
             defaultValue={initialData?.code ?? ''}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />
@@ -42,37 +43,17 @@ export default function LaborForm({ action, initialData, submitLabel, hiddenId }
         />
       </label>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Costo diario
-          <input
-            name="dailyCost"
-            defaultValue={initialData?.dailyCost?.toString() ?? ''}
-            inputMode="decimal"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
-
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Competencias
-          <input
-            name="competencies"
-            defaultValue={initialData?.competencies ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
-      </div>
+      <label className="space-y-2 text-sm font-medium text-zinc-700">
+        Costo diario
+        <input
+          name="dailyCost"
+          defaultValue={initialData?.dailyCost?.toString() ?? ''}
+          inputMode="decimal"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+        />
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Disponibilidad
-          <input
-            name="availability"
-            defaultValue={initialData?.availability ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
-
         <label className="space-y-2 text-sm font-medium text-zinc-700">
           CPC
           <input

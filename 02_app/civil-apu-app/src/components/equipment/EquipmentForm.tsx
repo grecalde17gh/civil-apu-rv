@@ -15,6 +15,7 @@ export default function EquipmentForm({ action, initialData, submitLabel, hidden
           Código
           <input
             name="code"
+            placeholder="EQ-001"
             defaultValue={initialData?.code ?? ''}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />

@@ -1,11 +1,11 @@
+import { isValidCatalogCode } from '../catalogCodes'
+
 export type MaterialImportRow = {
   rowNumber: number
   Code?: string | null
   Description?: string | null
   Unit?: string | null
   UnitPrice?: number | null
-  Category?: string | null
-  Source?: string | null
   Note?: string | null
   IsActive?: boolean | null
 }
@@ -17,6 +17,10 @@ export type MaterialRowValidation = {
 
 export function validateMaterialRow(row: MaterialImportRow): MaterialRowValidation {
   const errors: string[] = []
+
+  if (row.Code && !isValidCatalogCode(String(row.Code), 'MAT')) {
+    errors.push('Code debe tener formato MAT-001')
+  }
   if (!row.Description || String(row.Description).trim() === '') {
     errors.push('Falta Description')
   }
@@ -24,7 +28,7 @@ export function validateMaterialRow(row: MaterialImportRow): MaterialRowValidati
     errors.push('Falta Unit')
   }
   if (row.UnitPrice == null) {
-    errors.push('Falta UnitPrice o formato inválido')
+    errors.push('Falta UnitPrice o formato invalido')
   } else if (typeof row.UnitPrice === 'number' && row.UnitPrice < 0) {
     errors.push('UnitPrice debe ser >= 0')
   }

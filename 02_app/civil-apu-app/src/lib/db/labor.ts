@@ -1,14 +1,13 @@
 import { prisma } from './prisma'
 import type { LaborItem } from '@prisma/client'
-import { buildCopyName, generateCopyCode } from './copy'
+import { generateNextCatalogCode } from '../catalogCodes'
+import { buildCopyName } from './copy'
 
 export type LaborFormInput = {
   code?: string
   roleName: string
   hourlyCost: number
   dailyCost?: number
-  competencies?: string
-  availability?: string
   cpc?: string
   vae?: number
   category?: string
@@ -29,14 +28,14 @@ export async function getLaborById(id: string): Promise<LaborItem | null> {
 }
 
 export async function createLabor(data: LaborFormInput): Promise<LaborItem> {
+  const code = data.code || (await generateNextLaborCode())
+
   return prisma.laborItem.create({
     data: {
-      code: data.code || undefined,
+      code,
       roleName: data.roleName,
       hourlyCost: data.hourlyCost,
       dailyCost: data.dailyCost ?? undefined,
-      competencies: data.competencies || undefined,
-      availability: data.availability || undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
       category: data.category || undefined,
@@ -54,8 +53,6 @@ export async function updateLabor(id: string, data: LaborFormInput): Promise<Lab
       roleName: data.roleName,
       hourlyCost: data.hourlyCost,
       dailyCost: data.dailyCost ?? undefined,
-      competencies: data.competencies || undefined,
-      availability: data.availability || undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
       category: data.category || undefined,
@@ -79,10 +76,7 @@ export async function copyLabor(id: string): Promise<LaborItem> {
     throw new Error('Mano de obra no encontrada')
   }
 
-  const code = await generateCopyCode(labor.code, async (candidate) => {
-    const existing = await prisma.laborItem.findFirst({ where: { code: candidate }, select: { id: true } })
-    return existing !== null
-  })
+  const code = await generateNextLaborCode()
 
   return prisma.laborItem.create({
     data: {
@@ -90,8 +84,6 @@ export async function copyLabor(id: string): Promise<LaborItem> {
       roleName: buildCopyName(labor.roleName),
       hourlyCost: labor.hourlyCost,
       dailyCost: labor.dailyCost,
-      competencies: labor.competencies,
-      availability: labor.availability,
       cpc: labor.cpc,
       vae: labor.vae,
       category: labor.category,
@@ -99,4 +91,9 @@ export async function copyLabor(id: string): Promise<LaborItem> {
       isActive: labor.isActive,
     },
   })
+}
+
+async function generateNextLaborCode(): Promise<string> {
+  const labor = await prisma.laborItem.findMany({ select: { code: true } })
+  return generateNextCatalogCode(labor.map((item) => item.code), 'MO')
 }

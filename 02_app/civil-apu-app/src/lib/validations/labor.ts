@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCatalogCode } from '../catalogCodes'
 
 const nonEmptyString = z.string().trim().min(1)
 
@@ -35,12 +36,12 @@ const optionalDate = z.preprocess((value) => {
 }, z.date().optional())
 
 export const laborFormSchema = z.object({
-  code: z.string().trim().optional(),
+  code: z.string().trim().optional().refine((code) => !code || isValidCatalogCode(code, 'MO'), {
+    message: 'El codigo debe tener el formato MO-001',
+  }),
   roleName: nonEmptyString,
   hourlyCost: nonNegativeNumber,
   dailyCost: optionalNonNegativeNumber,
-  competencies: z.string().trim().optional(),
-  availability: z.string().trim().optional(),
   cpc: z.string().trim().optional(),
   vae: optionalNonNegativeNumber,
   category: z.string().trim().optional(),

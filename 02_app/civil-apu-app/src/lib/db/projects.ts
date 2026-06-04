@@ -2,9 +2,14 @@ import { prisma } from './prisma'
 import type { Project } from '@prisma/client'
 import type { ProjectFormInput } from '@/src/lib/validations/project'
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects() {
   return prisma.project.findMany({
     orderBy: { updatedAt: 'desc' },
+    include: {
+      _count: {
+        select: { budgets: true },
+      },
+    },
   })
 }
 

@@ -1,19 +1,16 @@
 import { z } from 'zod'
+import { isValidCatalogCode } from '../catalogCodes'
+import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const positiveNumber = z.preprocess((value) => {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed === '') return value
-    const number = Number(trimmed)
-    return Number.isNaN(number) ? value : number
-  }
-  return value
-}, z.number().finite().nonnegative())
+const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
 
 export const rubroTransportFormSchema = z.object({
   rubroId: nonEmptyString,
+  code: z.string().trim().optional().refine((code) => !code || isValidCatalogCode(code, 'TR'), {
+    message: 'El codigo debe tener el formato TR-001',
+  }),
   description: nonEmptyString,
   unit: nonEmptyString,
   quantity: positiveNumber,
@@ -30,6 +27,9 @@ export function validateRubroTransportInput(data: unknown): RubroTransportFormIn
 export const rubroTransportUpdateSchema = z.object({
   id: nonEmptyString,
   rubroId: nonEmptyString,
+  code: z.string().trim().optional().refine((code) => !code || isValidCatalogCode(code, 'TR'), {
+    message: 'El codigo debe tener el formato TR-001',
+  }),
   description: nonEmptyString,
   unit: nonEmptyString,
   quantity: positiveNumber,

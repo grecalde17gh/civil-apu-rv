@@ -24,8 +24,6 @@ export default async function EditLaborPage({ params }: LaborPageProps) {
     roleName: item.roleName,
     hourlyCost: Number(item.hourlyCost.toString()),
     dailyCost: item.dailyCost !== null && item.dailyCost !== undefined ? Number(item.dailyCost.toString()) : undefined,
-    competencies: item.competencies ?? undefined,
-    availability: item.availability ?? undefined,
     cpc: item.cpc ?? undefined,
     vae: item.vae !== null && item.vae !== undefined ? Number(item.vae.toString()) : undefined,
     category: item.category ?? undefined,
