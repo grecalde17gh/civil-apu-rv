@@ -25,7 +25,7 @@ export default function MaterialsImportPage() {
           <div className="grid gap-px bg-slate-200 md:grid-cols-4">
             <div className="bg-white px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Hoja requerida</p>
-              <p className="mt-1 font-mono text-sm font-semibold text-slate-950">Materials</p>
+              <p className="mt-1 font-mono text-sm font-semibold text-slate-950">Materiales</p>
             </div>
             <div className="bg-white px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Formato</p>
@@ -33,7 +33,7 @@ export default function MaterialsImportPage() {
             </div>
             <div className="bg-white px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Columnas minimas</p>
-              <p className="mt-1 font-mono text-sm font-semibold text-slate-950">Code, Description, Unit, UnitPrice</p>
+              <p className="mt-1 font-mono text-sm font-semibold text-slate-950">codigo, descripcion, unidad, costo, cpc, vae</p>
             </div>
             <div className="bg-white px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Destino</p>

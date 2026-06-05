@@ -1,6 +1,8 @@
 import type { LaborItem } from '@prisma/client'
 import type { RubroLaborWithLabor } from '@/src/lib/db/rubroLabor'
 import { addRubroLaborAction, deleteRubroLaborAction, updateRubroLaborAction } from '@/app/rubros/actions'
+import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
+import { formatCatalogOption } from '@/src/lib/catalogSearch'
 import InlineEditableCell from './InlineEditableCell'
 
 type RubroLaborSectionProps = {
@@ -10,6 +12,12 @@ type RubroLaborSectionProps = {
 }
 
 export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: RubroLaborSectionProps) {
+  const laborOptions = laborItems.map((labor) => ({
+    id: labor.id,
+    label: formatCatalogOption([labor.code, labor.roleName, 'hora'], labor.hourlyCost.toString()),
+    searchText: [labor.code, labor.roleName, labor.category, 'hora', labor.hourlyCost.toString()].join(' '),
+  }))
+
   return (
     <section id="mano-obra" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
@@ -23,14 +31,12 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Cargo
-            <select name="laborItemId" required className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-              <option value="">Selecciona un cargo</option>
-              {laborItems.map((labor) => (
-                <option key={labor.id} value={labor.id}>
-                  {labor.code ? `${labor.code} - ${labor.roleName}` : labor.roleName}
-                </option>
-              ))}
-            </select>
+            <CatalogCombobox
+              name="laborItemId"
+              options={laborOptions}
+              placeholder="Codigo, rol o categoria"
+              emptyLabel="No hay mano de obra que coincida."
+            />
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

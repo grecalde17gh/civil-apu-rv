@@ -8,13 +8,12 @@ const toolbarLinks = [
   { label: 'Materiales', href: '/materials' },
   { label: 'Mano de obra', href: '/labor' },
   { label: 'Equipos', href: '/equipment' },
-  { label: 'Importar', href: '/imports/materials' },
 ]
 
 const quickActions = [
   { label: 'Nuevo proyecto', href: '/projects/new' },
   { label: 'Nuevo rubro', href: '/rubros/new' },
-  { label: 'Importar materiales', href: '/imports/materials' },
+  { label: 'Importar materiales', href: '/materials/import' },
 ]
 
 function formatDate(date: Date) {

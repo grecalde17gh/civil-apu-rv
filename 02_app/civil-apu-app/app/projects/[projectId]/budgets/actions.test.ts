@@ -72,7 +72,14 @@ vi.mock('@/src/lib/calculations/budget', () => ({
   },
 }))
 
-import { addBudgetItemAction, copyBudgetAction } from './actions'
+vi.mock('@/src/lib/validations/rubroCompletion', () => ({
+  incompleteRubroMessage:
+    'El rubro debe tener al menos un componente con costo mayor a cero antes de guardarse o usarse en un presupuesto.',
+  isUsableRubroForBudget: (rubro: { directCost: { toString(): string } | null }) =>
+    Number(rubro.directCost?.toString() ?? '0') > 0,
+}))
+
+import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction } from './actions'
 
 describe('addBudgetItemAction', () => {
   beforeEach(() => {
@@ -116,6 +123,65 @@ describe('addBudgetItemAction', () => {
         totalPrice: 240,
       }),
     )
+  })
+
+  it('does not add a rubro without positive direct cost to a budget', async () => {
+    mocks.getBudgetByIdWithProject.mockResolvedValue({
+      id: 'budget-test1',
+      indirectPercentage: { toString: () => '20' },
+      project: {
+        defaultIndirectPercentage: { toString: () => '18' },
+      },
+    })
+    mocks.getRubroById.mockResolvedValue({
+      id: 'rubro-incompleto',
+      code: 'R-000',
+      description: 'Rubro incompleto',
+      unit: 'u',
+      directCost: { toString: () => '0' },
+      indirectPercentage: { toString: () => '20' },
+    })
+
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('projectId', 'project-franklin')
+    formData.set('rubroId', 'rubro-incompleto')
+    formData.set('quantity', '1')
+
+    await expect(addBudgetItemAction(formData)).rejects.toThrow(
+      'El rubro debe tener al menos un componente con costo mayor a cero',
+    )
+    expect(mocks.createBudgetItem).not.toHaveBeenCalled()
+  })
+
+  it('returns a UI-safe message when an incomplete rubro is submitted from the form', async () => {
+    mocks.getBudgetByIdWithProject.mockResolvedValue({
+      id: 'budget-test1',
+      indirectPercentage: { toString: () => '20' },
+      project: {
+        defaultIndirectPercentage: { toString: () => '18' },
+      },
+    })
+    mocks.getRubroById.mockResolvedValue({
+      id: 'rubro-incompleto',
+      code: 'R-000',
+      description: 'Rubro incompleto',
+      unit: 'u',
+      directCost: null,
+      indirectPercentage: { toString: () => '20' },
+    })
+
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('projectId', 'project-franklin')
+    formData.set('rubroId', 'rubro-incompleto')
+    formData.set('quantity', '1')
+
+    const result = await addBudgetItemFormAction({ ok: true, message: null }, formData)
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('El rubro debe tener al menos un componente')
+    expect(mocks.createBudgetItem).not.toHaveBeenCalled()
   })
 
   it('copies a budget and redirects to the copied budget editor', async () => {

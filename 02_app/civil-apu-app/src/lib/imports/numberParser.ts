@@ -1,42 +1,44 @@
 export function parseDecimalString(value: unknown): number | null {
   if (value === null || value === undefined) return null
-  if (typeof value === 'number') return Number(value)
-  let s = String(value).trim()
-  if (s === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
 
-  // Remove non-breaking spaces
-  s = s.replace(/\u00A0/g, ' ')
-  // Keep only digits, separators, minus and plus
-  s = s.replace(/[^0-9,\.\-+]/g, '')
+  let input = String(value).trim()
+  if (input === '') return null
 
-  // Heuristic: if both '.' and ',' are present, decide which is decimal
-  const hasDot = s.indexOf('.') !== -1
-  const hasComma = s.indexOf(',') !== -1
+  input = input.replace(/\u00A0/g, '').replace(/\s+/g, '')
 
-  if (hasDot && hasComma) {
-    // If last separator is comma, treat comma as decimal
-    const lastDot = s.lastIndexOf('.')
-    const lastComma = s.lastIndexOf(',')
-    if (lastComma > lastDot) {
-      // remove dots as thousands
-      s = s.replace(/\./g, '')
-      s = s.replace(/,/g, '.')
-    } else {
-      // remove commas as thousands
-      s = s.replace(/,/g, '')
-    }
-  } else if (hasComma) {
-    // Only comma present -> treat comma as decimal
-    s = s.replace(/\./g, '')
-    s = s.replace(/,/g, '.')
-  } else {
-    // Only dots or neither -> remove thousands separators (commas already gone)
-    s = s.replace(/,/g, '')
+  const sign = input.startsWith('-') || input.startsWith('+') ? input[0] : ''
+  const unsigned = sign ? input.slice(1) : input
+  if (unsigned === '') return null
+
+  const plainInteger = /^\d+$/
+  const plainDotDecimal = /^\d+\.\d+$/
+  const plainCommaDecimal = /^\d+,\d+$/
+  const latinGroupedDecimal = /^\d{1,3}(\.\d{3})+,\d+$/
+  const latinGroupedInteger = /^\d{1,3}(\.\d{3})+$/
+  const usGroupedDecimal = /^\d{1,3}(,\d{3})+\.\d+$/
+  const usGroupedInteger = /^\d{1,3}(,\d{3})+$/
+
+  let normalized: string | null = null
+
+  if (plainInteger.test(unsigned) || plainDotDecimal.test(unsigned)) {
+    normalized = `${sign}${unsigned}`
+  } else if (plainCommaDecimal.test(unsigned)) {
+    normalized = `${sign}${unsigned.replace(',', '.')}`
+  } else if (latinGroupedDecimal.test(unsigned)) {
+    normalized = `${sign}${unsigned.replace(/\./g, '').replace(',', '.')}`
+  } else if (latinGroupedInteger.test(unsigned)) {
+    normalized = `${sign}${unsigned.replace(/\./g, '')}`
+  } else if (usGroupedDecimal.test(unsigned)) {
+    normalized = `${sign}${unsigned.replace(/,/g, '')}`
+  } else if (usGroupedInteger.test(unsigned)) {
+    normalized = `${sign}${unsigned.replace(/,/g, '')}`
   }
 
-  const n = Number(s)
-  if (Number.isNaN(n)) return null
-  return n
+  if (normalized === null) return null
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export default parseDecimalString

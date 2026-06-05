@@ -4,7 +4,7 @@ import BudgetForm from '@/src/components/budgets/BudgetForm'
 import BudgetConsolidationTables from '@/src/components/budgets/BudgetConsolidationTables'
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
-import { updateBudgetAction, addBudgetItemAction, deleteBudgetItemAction, copyBudgetAction } from '../../actions'
+import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction } from '../../actions'
 import BudgetItemForm from '@/src/components/budgets/BudgetItemForm'
 import BudgetItemsTable from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
@@ -150,7 +150,7 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
         {activeTab === 'presupuesto' ? (
           <div className="mt-4 grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)_300px]">
             <BudgetItemForm
-              action={addBudgetItemAction}
+              action={addBudgetItemFormAction}
               budgetId={budgetId}
               projectId={projectId}
               rubros={rubros}

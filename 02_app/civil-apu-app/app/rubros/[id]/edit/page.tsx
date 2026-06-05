@@ -17,6 +17,7 @@ import { getRubroTransport } from '@/src/lib/db/rubroTransport'
 import RubroTransportSection from '@/src/components/rubros/RubroTransportSection'
 import { copyRubroAction, updateRubroAction } from '../../actions'
 import { calculateAPU } from '@/src/lib/calculations/apu'
+import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 
 type RubroEditPageProps = {
   params: Promise<{
@@ -74,6 +75,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
     transport: rubroTransport.map((line) => Number(line.totalCost.toString())),
     indirectPercentage: Number(rubro.indirectPercentage.toString()),
   })
+  const isIncomplete = !isUsableRubroForBudget({ directCost: totals.directCost })
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -92,7 +94,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
                 <span>
                   Contexto:{' '}
                   {highlightedContext
-                    ? `${highlightedContext.projectName} / ${highlightedContext.budgetName}`
+                    ? `${highlightedContext.budget.project.name} / ${highlightedContext.budget.name}`
                     : 'Catalogo general'}
                 </span>
               </div>
@@ -130,6 +132,16 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             hiddenId={id}
             variant="technical"
           />
+
+          {isIncomplete ? (
+            <div className="border-t border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950">
+              Estado: Incompleto. {incompleteRubroMessage}
+            </div>
+          ) : (
+            <div className="border-t border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+              Estado: Listo para presupuesto. El rubro tiene costo directo calculado mayor a cero.
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">

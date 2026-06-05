@@ -32,8 +32,20 @@ describe('rubro line update validations', () => {
         equipmentQuantity: '0',
         timeRequired: '0',
         rateSnapshot: '0',
+        notes: 'Equipo ajustado inline',
       }).rateSnapshot,
     ).toBe(0)
+
+    expect(
+      validateRubroEquipmentUpdateInput({
+        id: 'line-3',
+        rubroId: 'rubro-1',
+        equipmentQuantity: '1',
+        timeRequired: '2',
+        rateSnapshot: '12',
+        notes: 'Observacion editada',
+      }).notes,
+    ).toBe('Observacion editada')
 
     expect(
       validateRubroTransportUpdateInput({

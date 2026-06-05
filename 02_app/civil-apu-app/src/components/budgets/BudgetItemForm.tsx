@@ -1,14 +1,44 @@
+'use client'
+
+import { useActionState } from 'react'
 import type { Rubro } from '@prisma/client'
+import type { BudgetItemActionState } from '@/app/projects/[projectId]/budgets/actions'
+import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
+import { formatCatalogOption } from '@/src/lib/catalogSearch'
+import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 
 type BudgetItemFormProps = {
-  action: (formData: FormData) => Promise<void>
+  action: (state: BudgetItemActionState, formData: FormData) => Promise<BudgetItemActionState>
   budgetId: string
   projectId?: string
   rubros: Rubro[]
   variant?: 'default' | 'catalog'
 }
 
+const initialState: BudgetItemActionState = {
+  ok: true,
+  message: null,
+}
+
 export default function BudgetItemForm({ action, budgetId, projectId, rubros, variant = 'default' }: BudgetItemFormProps) {
+  const [state, formAction, isPending] = useActionState(action, initialState)
+  const usableRubros = rubros.filter(isUsableRubroForBudget)
+  const incompleteRubros = rubros.filter((rubro) => !isUsableRubroForBudget(rubro))
+  const rubroOptions = rubros.map((rubro) => {
+    const isUsable = isUsableRubroForBudget(rubro)
+
+    return {
+      id: rubro.id,
+      label: formatCatalogOption(
+        [rubro.code, rubro.description, rubro.unit],
+        rubro.directCost ? rubro.directCost.toString() : 'incompleto',
+      ),
+      searchText: [rubro.code, rubro.description, rubro.unit, rubro.directCost?.toString() ?? ''].join(' '),
+      disabled: !isUsable,
+      disabledReason: !isUsable ? 'Incompleto: sin costo directo mayor a cero' : undefined,
+    }
+  })
+
   if (variant === 'catalog') {
     return (
       <aside className="overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
@@ -16,34 +46,21 @@ export default function BudgetItemForm({ action, budgetId, projectId, rubros, va
           <p className="text-xs font-semibold uppercase tracking-wide text-white">Rubros disponibles</p>
         </div>
 
-        <div className="border-b border-slate-200 bg-slate-50 p-3">
-          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Buscar
-            <input
-              type="search"
-              list="budget-rubro-search-options"
-              placeholder="Codigo, descripcion o unidad"
-              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
-            />
-            <datalist id="budget-rubro-search-options">
-              {rubros.map((r) => (
-                <option key={r.id} value={`${r.code} - ${r.description} (${r.unit})`} />
-              ))}
-            </datalist>
-          </label>
-        </div>
+        <form action={formAction} className="space-y-3 border-b border-slate-200 p-3">
+          {state.message ? (
+            <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+              {state.message}
+            </div>
+          ) : null}
 
-        <form action={action} className="space-y-3 border-b border-slate-200 p-3">
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Rubro
-            <select name="rubroId" required className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950">
-              <option value="">Selecciona un rubro</option>
-              {rubros.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.code} - {r.description}
-                </option>
-              ))}
-            </select>
+            <CatalogCombobox
+              name="rubroId"
+              options={rubroOptions}
+              placeholder="Codigo, descripcion o unidad"
+              emptyLabel="No hay rubros que coincidan."
+            />
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -59,8 +76,12 @@ export default function BudgetItemForm({ action, budgetId, projectId, rubros, va
 
           <input type="hidden" name="budgetId" value={budgetId} />
           {projectId ? <input type="hidden" name="projectId" value={projectId} /> : null}
-          <button type="submit" className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
-            Agregar
+          <button
+            type="submit"
+            disabled={isPending}
+            className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800 disabled:cursor-wait disabled:bg-slate-400"
+          >
+            {isPending ? 'Agregando...' : 'Agregar'}
           </button>
         </form>
 
@@ -74,41 +95,51 @@ export default function BudgetItemForm({ action, budgetId, projectId, rubros, va
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {rubros.length === 0 ? (
+              {usableRubros.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-2 py-4 text-sm text-slate-500">
                     No hay rubros disponibles.
                   </td>
                 </tr>
               ) : (
-                rubros.slice(0, 80).map((r) => (
-                  <tr key={r.id} className="hover:bg-blue-50/60">
-                    <td className="px-2 py-2 font-mono text-slate-700">{r.code}</td>
-                    <td className="px-2 py-2 text-slate-800">{r.description}</td>
-                    <td className="px-2 py-2 text-slate-600">{r.unit}</td>
+                usableRubros.slice(0, 80).map((rubro) => (
+                  <tr key={rubro.id} className="hover:bg-blue-50/60">
+                    <td className="px-2 py-2 font-mono text-slate-700">{rubro.code}</td>
+                    <td className="px-2 py-2 text-slate-800">{rubro.description}</td>
+                    <td className="px-2 py-2 text-slate-600">{rubro.unit}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
+        {incompleteRubros.length > 0 ? (
+          <div className="border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {incompleteRubros.length} rubro(s) incompleto(s) estan ocultos o deshabilitados. {incompleteRubroMessage}
+          </div>
+        ) : null}
       </aside>
     )
   }
 
   return (
-    <form action={action} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <form action={formAction} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      {state.message ? (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+          {state.message}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
           Rubro
-          <select name="rubroId" required className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm">
-            <option value="">Selecciona un rubro</option>
-            {rubros.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.code} — {r.description}
-              </option>
-            ))}
-          </select>
+          <CatalogCombobox
+            name="rubroId"
+            options={rubroOptions}
+            placeholder="Codigo, descripcion o unidad"
+            emptyLabel="No hay rubros que coincidan."
+          />
         </label>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
@@ -119,8 +150,12 @@ export default function BudgetItemForm({ action, budgetId, projectId, rubros, va
         <div className="flex items-end">
           <input type="hidden" name="budgetId" value={budgetId} />
           {projectId ? <input type="hidden" name="projectId" value={projectId} /> : null}
-          <button type="submit" className="w-full rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
-            Agregar rubro
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-wait disabled:bg-zinc-500"
+          >
+            {isPending ? 'Agregando...' : 'Agregar rubro'}
           </button>
         </div>
       </div>

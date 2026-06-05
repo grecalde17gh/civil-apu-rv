@@ -4,6 +4,7 @@ import type { RubroFormInput } from '@/src/lib/validations/rubro'
 import { calculateDirectCost, calculateIndirectCost, calculateUnitPrice } from '@/src/lib/calculations/apu'
 import { generateNextCatalogCode } from '../catalogCodes'
 import { buildCopyName, generateCopyCode } from './copy'
+import { assertRubroCanUseState } from '@/src/lib/validations/rubroCompletion'
 
 export async function getRubros(): Promise<Rubro[]> {
   return prisma.rubro.findMany({
@@ -18,6 +19,12 @@ export async function getRubroById(id: string): Promise<Rubro | null> {
 }
 
 export async function createRubro(data: RubroFormInput): Promise<Rubro> {
+  assertRubroCanUseState({
+    status: data.status,
+    calculationStatus: data.calculationStatus,
+    directCost: null,
+  })
+
   return prisma.rubro.create({
     data: {
       code: data.code,
@@ -35,6 +42,21 @@ export async function createRubro(data: RubroFormInput): Promise<Rubro> {
 }
 
 export async function updateRubro(id: string, data: RubroFormInput): Promise<Rubro> {
+  const existing = await prisma.rubro.findUnique({
+    where: { id },
+    select: { directCost: true },
+  })
+
+  if (!existing) {
+    throw new Error('Rubro no encontrado')
+  }
+
+  assertRubroCanUseState({
+    status: data.status,
+    calculationStatus: data.calculationStatus,
+    directCost: existing.directCost,
+  })
+
   await prisma.rubro.update({
     where: { id },
     data: {

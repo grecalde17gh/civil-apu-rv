@@ -8,6 +8,12 @@ import { validateBudgetItemInput } from '@/src/lib/validations/budget'
 import { getRubroById } from '@/src/lib/db/rubros'
 import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject } from '@/src/lib/db/budgets'
 import { calculateBudgetItemSnapshots } from '@/src/lib/calculations/budget'
+import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
+
+export type BudgetItemActionState = {
+  ok: boolean
+  message: string | null
+}
 
 export async function createBudgetAction(formData: FormData) {
   const data = Object.fromEntries(formData)
@@ -67,7 +73,7 @@ export async function updateBudgetAction(formData: FormData) {
   redirect(`/projects/${projectId}/budgets`)
 }
 
-export async function addBudgetItemAction(formData: FormData) {
+async function createBudgetItemFromForm(formData: FormData): Promise<string> {
   const data = Object.fromEntries(formData)
   const parsed = validateBudgetItemInput(data)
 
@@ -86,11 +92,11 @@ export async function addBudgetItemAction(formData: FormData) {
     throw new Error('Rubro no encontrado')
   }
 
-  if (rubro.directCost == null) {
-    throw new Error('El rubro seleccionado no tiene costo directo calculado. No se puede agregar.')
+  if (!isUsableRubroForBudget(rubro)) {
+    throw new Error(incompleteRubroMessage)
   }
 
-  const directCost = Number(rubro.directCost.toString())
+  const directCost = Number(rubro.directCost?.toString() ?? '0')
   const indirectPercentage = Number(
     budget.indirectPercentage?.toString() ??
       budget.project.defaultIndirectPercentage?.toString() ??
@@ -125,10 +131,33 @@ export async function addBudgetItemAction(formData: FormData) {
 
   const projectId = formData.get('projectId')
   if (typeof projectId === 'string') {
-    redirect(`/projects/${projectId}/budgets/${budgetId}/edit`)
+    return `/projects/${projectId}/budgets/${budgetId}/edit`
   }
-  // fallback
-  redirect(`/projects`)
+
+  return '/projects'
+}
+
+export async function addBudgetItemAction(formData: FormData) {
+  const redirectUrl = await createBudgetItemFromForm(formData)
+  redirect(redirectUrl)
+}
+
+export async function addBudgetItemFormAction(
+  _previousState: BudgetItemActionState,
+  formData: FormData,
+): Promise<BudgetItemActionState> {
+  let redirectUrl = '/projects'
+
+  try {
+    redirectUrl = await createBudgetItemFromForm(formData)
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'No se pudo agregar el rubro al presupuesto.',
+    }
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function deleteBudgetItemAction(formData: FormData) {

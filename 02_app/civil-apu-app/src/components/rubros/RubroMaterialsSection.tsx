@@ -1,6 +1,8 @@
 import type { Material } from '@prisma/client'
 import type { RubroMaterialWithMaterial } from '@/src/lib/db/rubroMaterials'
 import { addRubroMaterialAction, deleteRubroMaterialAction, updateRubroMaterialAction } from '@/app/rubros/actions'
+import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
+import { formatCatalogOption } from '@/src/lib/catalogSearch'
 import InlineEditableCell from './InlineEditableCell'
 
 type RubroMaterialsSectionProps = {
@@ -10,6 +12,15 @@ type RubroMaterialsSectionProps = {
 }
 
 export default function RubroMaterialsSection({ rubroId, materials, rubroMaterials }: RubroMaterialsSectionProps) {
+  const materialOptions = materials.map((material) => ({
+    id: material.id,
+    label: formatCatalogOption(
+      [material.code, material.description, material.unit],
+      material.unitCost.toString(),
+    ),
+    searchText: [material.code, material.description, material.unit, material.unitCost.toString()].join(' '),
+  }))
+
   return (
     <section id="materiales" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
@@ -23,14 +34,12 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Material
-            <select name="materialId" required className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-              <option value="">Selecciona un material</option>
-              {materials.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.code ? `${material.code} - ${material.description}` : material.description}
-                </option>
-              ))}
-            </select>
+            <CatalogCombobox
+              name="materialId"
+              options={materialOptions}
+              placeholder="Codigo, descripcion o unidad"
+              emptyLabel="No hay materiales que coincidan."
+            />
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

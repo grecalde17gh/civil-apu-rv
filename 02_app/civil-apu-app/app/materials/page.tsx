@@ -2,9 +2,30 @@ import Link from 'next/link'
 import { getMaterials } from '@/src/lib/db/materials'
 import { copyMaterialAction, toggleMaterialActiveAction } from './actions'
 import ExportVisibleTableButton from '@/src/components/export/ExportVisibleTableButton'
+import { filterMaterials, type CatalogFilterParams } from '@/src/lib/catalogFilters'
 
-export default async function MaterialsPage() {
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+function getParam(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key]
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function MaterialsPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {}
+  const filters: CatalogFilterParams = {
+    q: getParam(params, 'q') ?? '',
+    unit: getParam(params, 'unit') ?? 'all',
+    status: getParam(params, 'status') ?? 'all',
+    cat1: getParam(params, 'cat1') ?? 'all',
+    cat2: getParam(params, 'cat2') ?? 'all',
+    minCost: getParam(params, 'minCost') ?? '',
+    maxCost: getParam(params, 'maxCost') ?? '',
+  }
   const materials = await getMaterials()
+  const filteredMaterials = filterMaterials(materials, filters)
   const units = [...new Set(materials.map((material) => material.unit).filter(Boolean))].sort()
   const activeCount = materials.filter((material) => material.isActive).length
   const category1Count = materials.filter((material) => material.usesCategory1).length
@@ -24,8 +45,8 @@ export default async function MaterialsPage() {
               <Link href="/materials/new" className="inline-flex h-8 items-center rounded border border-blue-300 bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
                 Nuevo
               </Link>
-              <Link href="/imports/materials" className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700">
-                Importar
+              <Link href="/materials/import" className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700">
+                Importar materiales
               </Link>
               <Link href="/" className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700">
                 Volver
@@ -58,10 +79,10 @@ export default async function MaterialsPage() {
             <div className="border-b border-slate-300 bg-slate-800 px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-white">Busqueda y filtros</p>
             </div>
-            <div className="space-y-3 p-3">
+            <form action="/materials" className="space-y-3 p-3">
               <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 Buscar
-                <input type="search" list="material-search-options" placeholder="Codigo o descripcion" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
+                <input name="q" defaultValue={filters.q} type="search" list="material-search-options" placeholder="Codigo, descripcion, CPC o VAE" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
                 <datalist id="material-search-options">
                   {materials.map((material) => (
                     <option key={material.id} value={`${material.code ?? ''} - ${material.description}`} />
@@ -71,29 +92,71 @@ export default async function MaterialsPage() {
 
               <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 Unidad
-                <select className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-                  <option>Todas</option>
+                <select name="unit" defaultValue={filters.unit} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
+                  <option value="all">Todas</option>
                   {units.map((unit) => (
-                    <option key={unit}>{unit}</option>
+                    <option key={unit} value={unit}>{unit}</option>
                   ))}
                 </select>
               </label>
 
               <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 Estado
-                <select className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-                  <option>Todos</option>
-                  <option>Activo</option>
-                  <option>Inactivo</option>
+                <select name="status" defaultValue={filters.status} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
+                  <option value="all">Todos</option>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
                 </select>
               </label>
-            </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Costo min.
+                  <input name="minCost" defaultValue={filters.minCost} inputMode="decimal" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
+                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Costo max.
+                  <input name="maxCost" defaultValue={filters.maxCost} inputMode="decimal" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Cat.1
+                  <select name="cat1" defaultValue={filters.cat1} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
+                    <option value="all">Todas</option>
+                    <option value="yes">Si</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Cat.2
+                  <select name="cat2" defaultValue={filters.cat2} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
+                    <option value="all">Todas</option>
+                    <option value="yes">Si</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button type="submit" className="h-8 rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
+                  Aplicar filtros
+                </button>
+                <Link href="/materials" className="inline-flex h-8 items-center justify-center rounded border border-slate-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-800 transition hover:bg-slate-100">
+                  Limpiar filtros
+                </Link>
+              </div>
+            </form>
           </aside>
 
           <section className="min-w-0 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
             <div className="flex items-center justify-between gap-3 border-b border-slate-300 bg-slate-800 px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-white">Tabla de materiales</p>
-              <ExportVisibleTableButton tableId="materials-table" fileName="materiales" />
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-white">Exportar materiales</span>
+                <ExportVisibleTableButton tableId="materials-table" fileName="materiales" />
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table id="materials-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
@@ -110,12 +173,14 @@ export default async function MaterialsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {materials.length === 0 ? (
+                  {filteredMaterials.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-3 py-10 text-center text-sm text-slate-500">No hay materiales registrados.</td>
+                      <td colSpan={8} className="px-3 py-10 text-center text-sm text-slate-500">
+                        {materials.length === 0 ? 'No hay materiales registrados.' : 'No se encontraron registros con los filtros aplicados.'}
+                      </td>
                     </tr>
                   ) : (
-                    materials.map((material) => (
+                    filteredMaterials.map((material) => (
                       <tr key={material.id} className="hover:bg-blue-50/60">
                         <td className="px-3 py-2 font-mono text-slate-700">{material.code || '-'}</td>
                         <td className="px-3 py-2 text-slate-800">{material.description}</td>

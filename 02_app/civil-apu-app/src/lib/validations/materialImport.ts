@@ -6,8 +6,12 @@ export type MaterialImportRow = {
   Description?: string | null
   Unit?: string | null
   UnitPrice?: number | null
+  Cpc?: string | null
+  Vae?: number | null
   Note?: string | null
   IsActive?: boolean | null
+  UsesCategory1?: boolean | null
+  UsesCategory2?: boolean | null
 }
 
 export type MaterialRowValidation = {
@@ -31,6 +35,14 @@ export function validateMaterialRow(row: MaterialImportRow): MaterialRowValidati
     errors.push('Falta UnitPrice o formato invalido')
   } else if (typeof row.UnitPrice === 'number' && row.UnitPrice < 0) {
     errors.push('UnitPrice debe ser >= 0')
+  }
+  if (row.Cpc != null && Number.isNaN(Number(row.Cpc))) {
+    errors.push('CPC debe ser numerico')
+  } else if (row.Cpc != null && Number(row.Cpc) < 0) {
+    errors.push('CPC debe ser >= 0')
+  }
+  if (row.Vae != null && row.Vae < 0) {
+    errors.push('VAE debe ser >= 0')
   }
 
   return { valid: errors.length === 0, errors }

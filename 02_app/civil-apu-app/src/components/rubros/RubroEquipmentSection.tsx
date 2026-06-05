@@ -1,6 +1,9 @@
 import type { EquipmentItem } from '@prisma/client'
 import type { RubroEquipmentWithItem } from '@/src/lib/db/rubroEquipment'
 import { addRubroEquipmentAction, deleteRubroEquipmentAction, updateRubroEquipmentAction } from '@/app/rubros/actions'
+import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
+import { formatCatalogOption } from '@/src/lib/catalogSearch'
+import InlineEditableCell from './InlineEditableCell'
 
 type RubroEquipmentSectionProps = {
   rubroId: string
@@ -9,6 +12,14 @@ type RubroEquipmentSectionProps = {
 }
 
 export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEquipment }: RubroEquipmentSectionProps) {
+  const equipmentOptions = equipmentItems.map((item) => ({
+    id: item.id,
+    label: formatCatalogOption([item.code, item.description, 'hora'], item.hourlyRate?.toString() ?? 'sin tarifa'),
+    searchText: [item.code, item.description, item.equipmentType, 'hora', item.hourlyRate?.toString() ?? ''].join(' '),
+    disabled: item.hourlyRate === null,
+    disabledReason: item.hourlyRate === null ? 'Sin tarifa horaria vigente' : undefined,
+  }))
+
   return (
     <section id="equipos" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
@@ -22,14 +33,12 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Equipo
-            <select name="equipmentItemId" required className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-              <option value="">Selecciona un equipo</option>
-              {equipmentItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.code ? `${item.code} - ${item.description}` : item.description}
-                </option>
-              ))}
-            </select>
+            <CatalogCombobox
+              name="equipmentItemId"
+              options={equipmentOptions}
+              placeholder="Codigo, equipo o tipo"
+              emptyLabel="No hay equipos que coincidan."
+            />
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -61,27 +70,65 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rendimiento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
             {rubroEquipment.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-5 text-sm text-slate-500">
+                <td colSpan={9} className="px-3 py-5 text-sm text-slate-500">
                   No hay equipos agregados al rubro.
                 </td>
               </tr>
             ) : (
-              rubroEquipment.map((line) => (
-                <tr key={line.id} className="hover:bg-blue-50/60">
-                  <td className="px-3 py-2 font-mono text-slate-700">{line.equipmentItem.code ?? '-'}</td>
-                  <td className="px-3 py-2 text-slate-800">{line.equipmentItem.description}</td>
-                  <td className="px-3 py-2 text-slate-700">hora</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.equipmentQuantity.toString()}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.timeRequired?.toString() ?? '-'}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.rateSnapshot.toString()}</td>
-                  <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
-                  <td className="px-3 py-2 text-slate-700">
+              rubroEquipment.map((line) => {
+                const timeRequired = line.timeRequired?.toString() ?? '0'
+                const payload = {
+                  id: line.id,
+                  rubroId,
+                  equipmentQuantity: line.equipmentQuantity.toString(),
+                  timeRequired,
+                  rateSnapshot: line.rateSnapshot.toString(),
+                  notes: line.notes ?? '',
+                }
+
+                return (
+                  <tr key={line.id} className="hover:bg-blue-50/60">
+                    <td className="px-3 py-2 font-mono text-slate-700">{line.equipmentItem.code ?? '-'}</td>
+                    <td className="px-3 py-2 text-slate-800">{line.equipmentItem.description}</td>
+                    <td className="px-3 py-2 text-slate-700">hora</td>
+                    <InlineEditableCell
+                      actionName="equipment"
+                      fieldName="equipmentQuantity"
+                      value={line.equipmentQuantity.toString()}
+                      payload={payload}
+                      required
+                    />
+                    <InlineEditableCell
+                      actionName="equipment"
+                      fieldName="timeRequired"
+                      value={timeRequired}
+                      payload={payload}
+                      required
+                    />
+                    <InlineEditableCell
+                      actionName="equipment"
+                      fieldName="rateSnapshot"
+                      value={line.rateSnapshot.toString()}
+                      payload={payload}
+                      required
+                    />
+                    <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
+                    <InlineEditableCell
+                      actionName="equipment"
+                      fieldName="notes"
+                      value={line.notes ?? ''}
+                      payload={payload}
+                      type="text"
+                      align="left"
+                    />
+                    <td className="px-3 py-2 text-slate-700">
                     <details className="mb-2">
                       <summary className="cursor-pointer rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
                         Editar
@@ -117,9 +164,10 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                         Eliminar
                       </button>
                     </form>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
