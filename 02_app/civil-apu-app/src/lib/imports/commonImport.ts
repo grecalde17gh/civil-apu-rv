@@ -30,6 +30,12 @@ export type ImportApplyResult = {
   rejected: number
 }
 
+export type DenominationLookupItem = {
+  id: string
+  code: string | null
+  name: string
+}
+
 export type RawCatalogRow = {
   rowNumber: number
   values: Record<string, ImportCellValue>
@@ -164,6 +170,28 @@ export function normalizeImportText(value: unknown): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim() ?? ''
+}
+
+export function buildDenominationLookup(denominations: DenominationLookupItem[]): Map<string, string> {
+  const lookup = new Map<string, string>()
+
+  denominations.forEach((denomination) => {
+    const code = normalizeImportText(denomination.code)
+    const name = normalizeImportText(denomination.name)
+    const combined = normalizeImportText([denomination.code, denomination.name].filter(Boolean).join(' '))
+
+    if (code) lookup.set(code, denomination.id)
+    if (name) lookup.set(name, denomination.id)
+    if (combined) lookup.set(combined, denomination.id)
+  })
+
+  return lookup
+}
+
+export function resolveDenominationId(value: unknown, lookup: Map<string, string>): string | undefined {
+  const normalized = normalizeImportText(value)
+  if (!normalized) return undefined
+  return lookup.get(normalized)
 }
 
 export function areImportNumbersEqual(left: unknown, right: unknown): boolean {

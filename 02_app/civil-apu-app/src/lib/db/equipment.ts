@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import type { EquipmentItem } from '@prisma/client'
+import type { EquipmentItem, Prisma } from '@prisma/client'
 import { generateNextCatalogCode } from '../catalogCodes'
 import { buildCopyName } from './copy'
 
@@ -14,12 +14,16 @@ export type EquipmentFormInput = {
   maintenanceNotes?: string
   cpc?: string
   vae?: number
+  denominationId?: string
   priceDate?: Date
   isActive: boolean
 }
 
-export async function getEquipmentItems(): Promise<EquipmentItem[]> {
+export type EquipmentWithDenomination = Prisma.EquipmentItemGetPayload<{ include: { denomination: true } }>
+
+export async function getEquipmentItems(): Promise<EquipmentWithDenomination[]> {
   return prisma.equipmentItem.findMany({
+    include: { denomination: true },
     orderBy: { updatedAt: 'desc' },
   })
 }
@@ -45,6 +49,7 @@ export async function createEquipment(data: EquipmentFormInput): Promise<Equipme
       maintenanceNotes: data.maintenanceNotes || undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
+      denominationId: data.denominationId || undefined,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -65,6 +70,7 @@ export async function updateEquipment(id: string, data: EquipmentFormInput): Pro
       maintenanceNotes: data.maintenanceNotes || undefined,
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
+      denominationId: data.denominationId || null,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -99,6 +105,7 @@ export async function copyEquipment(id: string): Promise<EquipmentItem> {
       maintenanceNotes: equipment.maintenanceNotes,
       cpc: equipment.cpc,
       vae: equipment.vae,
+      denominationId: equipment.denominationId,
       priceDate: equipment.priceDate,
       isActive: equipment.isActive,
     },

@@ -18,6 +18,7 @@ import RubroTransportSection from '@/src/components/rubros/RubroTransportSection
 import { copyRubroAction, updateRubroAction } from '../../actions'
 import { calculateAPU } from '@/src/lib/calculations/apu'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 
 type RubroEditPageProps = {
   params: Promise<{
@@ -41,13 +42,13 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
     code: rubro.code,
     description: rubro.description,
     unit: rubro.unit,
-    category: rubro.category ?? undefined,
     performanceValue:
       rubro.performanceValue !== null && rubro.performanceValue !== undefined
         ? Number(rubro.performanceValue.toString())
         : undefined,
     performanceUnit: rubro.performanceUnit ?? undefined,
     indirectPercentage: Number(rubro.indirectPercentage.toString()),
+    technicalSpecification: rubro.technicalSpecification ?? undefined,
     notes: rubro.notes ?? undefined,
     status: rubro.status,
     calculationStatus: rubro.calculationStatus,
@@ -62,6 +63,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
   const rubroEquipment = await getRubroEquipment(id)
   const equipmentItems = await getEquipmentItems()
   const rubroTransport = await getRubroTransport(id)
+  const denominations = await getIpcoDenominations()
   const usageContexts = await getRubroUsageContexts(id)
   const highlightedContext = budgetId ? usageContexts.find((context) => context.budgetId === budgetId) : undefined
   const orderedUsageContexts = highlightedContext
@@ -76,6 +78,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
     indirectPercentage: Number(rubro.indirectPercentage.toString()),
   })
   const isIncomplete = !isUsableRubroForBudget({ directCost: totals.directCost })
+  const hasRubroPerformance = Number(rubro.performanceValue?.toString() ?? '0') > 0
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -142,6 +145,12 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               Estado: Listo para presupuesto. El rubro tiene costo directo calculado mayor a cero.
             </div>
           )}
+
+          {!hasRubroPerformance ? (
+            <div className="border-t border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950">
+              Rendimiento del rubro sin valor mayor a cero. Mano de obra y equipos conservaran el rendimiento/horas de cada linea.
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -166,7 +175,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} />
             <RubroLaborSection rubroId={id} laborItems={laborItems} rubroLabor={rubroLabor} />
             <RubroEquipmentSection rubroId={id} equipmentItems={equipmentItems} rubroEquipment={rubroEquipment} />
-            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} />
+            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} denominations={denominations} />
             <RubroUsageContext contexts={orderedUsageContexts} />
           </main>
 

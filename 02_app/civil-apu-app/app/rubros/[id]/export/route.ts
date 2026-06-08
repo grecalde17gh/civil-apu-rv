@@ -37,6 +37,7 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
   const workbook = buildRubroWorkbook({
     code: rubro.code,
     description: rubro.description,
+    technicalSpecification: rubro.technicalSpecification,
     unit: rubro.unit,
     status: rubro.status,
     directCost: rubro.directCost,

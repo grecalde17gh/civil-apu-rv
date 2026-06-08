@@ -26,7 +26,6 @@ export const rubroEquipmentUpdateSchema = z.object({
   rubroId: nonEmptyString,
   equipmentQuantity: nonNegativeNumber,
   timeRequired: nonNegativeNumber,
-  rateSnapshot: nonNegativeNumber,
   notes: z.string().trim().optional(),
 })
 

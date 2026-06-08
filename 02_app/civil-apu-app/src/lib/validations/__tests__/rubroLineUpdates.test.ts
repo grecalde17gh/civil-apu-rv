@@ -11,7 +11,7 @@ describe('rubro line update validations', () => {
         id: 'line-1',
         rubroId: 'rubro-1',
         quantity: '0',
-        unitCostSnapshot: '0',
+        priceOption: '1',
       }).quantity,
     ).toBe(0)
 
@@ -21,8 +21,7 @@ describe('rubro line update validations', () => {
         rubroId: 'rubro-1',
         workerQuantity: '0',
         timeRequired: '0',
-        hourlyCostSnapshot: '0',
-      }).hourlyCostSnapshot,
+      }).timeRequired,
     ).toBe(0)
 
     expect(
@@ -31,9 +30,8 @@ describe('rubro line update validations', () => {
         rubroId: 'rubro-1',
         equipmentQuantity: '0',
         timeRequired: '0',
-        rateSnapshot: '0',
         notes: 'Equipo ajustado inline',
-      }).rateSnapshot,
+      }).timeRequired,
     ).toBe(0)
 
     expect(
@@ -42,7 +40,6 @@ describe('rubro line update validations', () => {
         rubroId: 'rubro-1',
         equipmentQuantity: '1',
         timeRequired: '2',
-        rateSnapshot: '12',
         notes: 'Observacion editada',
       }).notes,
     ).toBe('Observacion editada')
@@ -65,7 +62,7 @@ describe('rubro line update validations', () => {
         id: 'line-1',
         rubroId: 'rubro-1',
         quantity: '-1',
-        unitCostSnapshot: '0',
+        priceOption: '1',
       }),
     ).toThrow()
 
@@ -74,8 +71,25 @@ describe('rubro line update validations', () => {
         id: 'line-2',
         rubroId: 'rubro-1',
         workerQuantity: '1',
-        timeRequired: '1',
-        hourlyCostSnapshot: '-1',
+        timeRequired: '-1',
+      }),
+    ).toThrow()
+
+    expect(() =>
+      validateRubroMaterialUpdateInput({
+        id: 'line-1',
+        rubroId: 'rubro-1',
+        quantity: '1',
+        priceOption: '2',
+      }),
+    ).not.toThrow()
+
+    expect(() =>
+      validateRubroMaterialUpdateInput({
+        id: 'line-1',
+        rubroId: 'rubro-1',
+        quantity: '1',
+        priceOption: '4',
       }),
     ).toThrow()
   })

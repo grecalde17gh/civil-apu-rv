@@ -144,7 +144,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                     <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -165,7 +165,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                           {item.hourlyRate !== null && item.hourlyRate !== undefined ? item.hourlyRate.toString() : '-'}
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{item.equipmentType ?? '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{item.denomination ? [item.denomination.code, item.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{item.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap gap-2">

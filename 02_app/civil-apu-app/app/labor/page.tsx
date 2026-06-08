@@ -17,14 +17,14 @@ export default async function LaborPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {}
   const filters: CatalogFilterParams = {
     q: getParam(params, 'q') ?? '',
-    category: getParam(params, 'category') ?? 'all',
+    category: 'all',
     status: getParam(params, 'status') ?? 'all',
     minCost: getParam(params, 'minCost') ?? '',
     maxCost: getParam(params, 'maxCost') ?? '',
   }
   const items = await getLaborItems()
   const filteredItems = filterLabor(items, filters)
-  const categories = [...new Set(items.map((item) => item.category).filter(Boolean))].sort()
+  const denominationCount = items.filter((item) => item.denominationId).length
   const activeCount = items.filter((item) => item.isActive).length
   const withDailyCostCount = items.filter((item) => item.dailyCost !== null).length
 
@@ -65,8 +65,8 @@ export default async function LaborPage({ searchParams }: PageProps) {
               <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{withDailyCostCount}</p>
             </div>
             <div className="bg-white px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Categorias</p>
-              <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{categories.length}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Con denominacion IPCO</p>
+              <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{denominationCount}</p>
             </div>
           </div>
         </header>
@@ -85,16 +85,6 @@ export default async function LaborPage({ searchParams }: PageProps) {
                     <option key={item.id} value={`${item.code ?? ''} - ${item.roleName}`} />
                   ))}
                 </datalist>
-              </label>
-
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Categoria
-                <select name="category" defaultValue={filters.category} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-                  <option value="all">Todas</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
               </label>
 
               <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -144,7 +134,7 @@ export default async function LaborPage({ searchParams }: PageProps) {
                     <th className="min-w-[260px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rol</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -163,7 +153,7 @@ export default async function LaborPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 text-slate-800">{item.roleName}</td>
                         <td className="px-3 py-2 text-slate-700">hora</td>
                         <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{item.hourlyCost.toString()}</td>
-                        <td className="px-3 py-2 text-slate-700">{item.category ?? '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{item.denomination ? [item.denomination.code, item.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{item.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap gap-2">

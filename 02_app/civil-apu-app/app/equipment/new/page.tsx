@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import EquipmentForm from '@/src/components/equipment/EquipmentForm'
 import { createEquipmentAction } from '../actions'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 
-export default function NewEquipmentPage() {
+export default async function NewEquipmentPage() {
+  const denominations = await getIpcoDenominations()
+
   return (
     <div className="min-h-screen bg-zinc-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
@@ -19,7 +22,7 @@ export default function NewEquipmentPage() {
           </Link>
         </div>
 
-        <EquipmentForm action={createEquipmentAction} submitLabel="Crear equipo" />
+        <EquipmentForm action={createEquipmentAction} submitLabel="Crear equipo" denominations={denominations} />
       </div>
     </div>
   )

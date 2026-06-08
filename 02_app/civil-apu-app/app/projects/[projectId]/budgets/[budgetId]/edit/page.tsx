@@ -4,7 +4,7 @@ import BudgetForm from '@/src/components/budgets/BudgetForm'
 import BudgetConsolidationTables from '@/src/components/budgets/BudgetConsolidationTables'
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
-import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction } from '../../actions'
+import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction } from '../../actions'
 import BudgetItemForm from '@/src/components/budgets/BudgetItemForm'
 import BudgetItemsTable from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
@@ -163,6 +163,7 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
                 budgetId={budgetId}
                 projectId={projectId}
                 deleteAction={deleteBudgetItemAction}
+                updateQuantityAction={updateBudgetItemQuantityAction}
               />
             </main>
 

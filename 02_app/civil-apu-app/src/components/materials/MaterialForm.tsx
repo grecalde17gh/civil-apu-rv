@@ -1,13 +1,22 @@
 import type { MaterialFormInput } from '@/src/lib/validations/material'
+import type { IpcoDenomination } from '@prisma/client'
+import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
 
 type MaterialFormProps = {
   action: (formData: FormData) => Promise<void>
   initialData?: Partial<MaterialFormInput>
+  denominations?: IpcoDenomination[]
   submitLabel: string
   hiddenId?: string
 }
 
-export default function MaterialForm({ action, initialData, submitLabel, hiddenId }: MaterialFormProps) {
+export default function MaterialForm({ action, initialData, denominations = [], submitLabel, hiddenId }: MaterialFormProps) {
+  const denominationOptions = denominations.map((denomination) => ({
+    id: denomination.id,
+    label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
+    searchText: [denomination.code, denomination.name].filter(Boolean).join(' '),
+  }))
+
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -42,15 +51,42 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
         />
       </label>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="space-y-2 text-sm font-medium text-zinc-700">
+          Precio 1
+          <input
+            name="price1"
+            defaultValue={initialData?.price1?.toString() ?? ''}
+            required
+            inputMode="decimal"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </label>
+
+        <label className="space-y-2 text-sm font-medium text-zinc-700">
+          Precio 2
+          <input
+            name="price2"
+            defaultValue={initialData?.price2?.toString() ?? ''}
+            inputMode="decimal"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </label>
+
+        <label className="space-y-2 text-sm font-medium text-zinc-700">
+          Precio 3
+          <input
+            name="price3"
+            defaultValue={initialData?.price3?.toString() ?? ''}
+            inputMode="decimal"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </label>
+      </div>
+
       <label className="space-y-2 text-sm font-medium text-zinc-700">
-        Costo unitario
-        <input
-          name="unitCost"
-          defaultValue={initialData?.unitCost?.toString() ?? ''}
-          required
-          inputMode="decimal"
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-        />
+        Denominacion IPCO
+        <DenominationCombobox options={denominationOptions} initialId={initialData?.denominationId ?? ''} />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -71,28 +107,6 @@ export default function MaterialForm({ action, initialData, submitLabel, hiddenI
             inputMode="decimal"
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />
-        </label>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex items-center gap-3 text-sm font-medium text-zinc-700">
-          <input
-            name="usesCategory1"
-            type="checkbox"
-            defaultChecked={initialData?.usesCategory1 ?? false}
-            className="h-4 w-4 rounded border-zinc-300 text-zinc-700"
-          />
-          Participa en Categoria 1
-        </label>
-
-        <label className="flex items-center gap-3 text-sm font-medium text-zinc-700">
-          <input
-            name="usesCategory2"
-            type="checkbox"
-            defaultChecked={initialData?.usesCategory2 ?? false}
-            className="h-4 w-4 rounded border-zinc-300 text-zinc-700"
-          />
-          Participa en Categoria 2
         </label>
       </div>
 

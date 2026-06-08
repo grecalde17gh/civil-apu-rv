@@ -58,8 +58,6 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo unitario</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.1</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.2</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -71,8 +69,6 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.totalQuantity)}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.unitCost)}</td>
                   <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatNumber(row.totalCost)}</td>
-                  <td className="px-3 py-2 text-slate-700">{row.usesCategory1 ? 'Si' : 'No'}</td>
-                  <td className="px-3 py-2 text-slate-700">{row.usesCategory2 ? 'Si' : 'No'}</td>
                 </tr>
               ))}
               <tr className="bg-blue-50">

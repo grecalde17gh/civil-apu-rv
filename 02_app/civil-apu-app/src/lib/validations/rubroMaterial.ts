@@ -6,11 +6,13 @@ const nonEmptyString = z.string().trim().min(1)
 const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().positive())
 
 const nonNegativeNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
+const priceOption = z.preprocess(decimalInputPreprocess, z.number().int().min(1).max(3))
 
 export const rubroMaterialFormSchema = z.object({
   rubroId: nonEmptyString,
   materialId: nonEmptyString,
   quantity: positiveNumber,
+  priceOption: priceOption.default(1),
   notes: z.string().trim().optional(),
 })
 
@@ -25,7 +27,7 @@ export const rubroMaterialUpdateSchema = z.object({
   rubroId: nonEmptyString,
   quantity: nonNegativeNumber,
   unit: z.string().trim().optional(),
-  unitCostSnapshot: nonNegativeNumber,
+  priceOption: priceOption.optional(),
   notes: z.string().trim().optional(),
 })
 

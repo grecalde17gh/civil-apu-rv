@@ -5,6 +5,7 @@ import { decimalInputPreprocess } from './decimalInput'
 const nonEmptyString = z.string().trim().min(1)
 
 const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
+const optionalString = z.string().trim().optional()
 
 export const rubroTransportFormSchema = z.object({
   rubroId: nonEmptyString,
@@ -15,6 +16,7 @@ export const rubroTransportFormSchema = z.object({
   unit: nonEmptyString,
   quantity: positiveNumber,
   unitCost: positiveNumber,
+  denominationId: optionalString,
   notes: z.string().trim().optional(),
 })
 
@@ -34,6 +36,7 @@ export const rubroTransportUpdateSchema = z.object({
   unit: nonEmptyString,
   quantity: positiveNumber,
   unitCost: positiveNumber,
+  denominationId: optionalString,
   notes: z.string().trim().optional(),
 })
 

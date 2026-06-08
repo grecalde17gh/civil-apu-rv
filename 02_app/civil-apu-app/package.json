@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "reset:dev-data": "tsx scripts/reset-dev-data.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "import:ipco-denominations": "tsx scripts/import-ipco-denominations.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -26,7 +26,6 @@ export const rubroLaborUpdateSchema = z.object({
   rubroId: nonEmptyString,
   workerQuantity: nonNegativeNumber,
   timeRequired: nonNegativeNumber,
-  hourlyCostSnapshot: nonNegativeNumber,
   notes: z.string().trim().optional(),
 })
 

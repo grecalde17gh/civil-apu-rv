@@ -43,6 +43,7 @@ export const rubroFormSchema = z.object({
   performanceValue: optionalNonNegativeNumber,
   performanceUnit: optionalString,
   indirectPercentage,
+  technicalSpecification: optionalString,
   notes: optionalString,
   status: statusSchema,
   calculationStatus: calculationStatusSchema,

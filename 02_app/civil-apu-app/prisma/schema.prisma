@@ -125,23 +125,48 @@ model Material {
   code          String?   @unique
   description   String
   unit          String
+  price1        Decimal   @db.Decimal(12, 4)
+  price2        Decimal?  @db.Decimal(12, 4)
+  price3        Decimal?  @db.Decimal(12, 4)
   unitCost      Decimal   @db.Decimal(12, 4)
   cpc           String?
   vae           Decimal?  @db.Decimal(8, 4)
+  denominationId String?
+  // Obsolete: category flags were replaced by denominationId (IPCO category).
   usesCategory1 Boolean   @default(false)
   usesCategory2 Boolean   @default(false)
   priceDate     DateTime?
   isActive      Boolean   @default(true)
 
   rubroMaterials RubroMaterial[]
+  denomination IpcoDenomination? @relation(fields: [denominationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([description])
   @@index([code])
+  @@index([denominationId])
   @@index([usesCategory1])
   @@index([usesCategory2])
+}
+
+model IpcoDenomination {
+  id        String  @id @default(uuid())
+  code      String? @unique
+  name      String  @unique
+  source    String?
+
+  materials Material[]
+  laborItems LaborItem[]
+  equipmentItems EquipmentItem[]
+  rubroTransports RubroTransport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([code])
 }
 
 /// Historical table from the first catalog cleanup pass. It is intentionally
@@ -165,17 +190,21 @@ model LaborItem {
   dailyCost  Decimal?  @db.Decimal(12, 4)
   cpc        String?
   vae        Decimal?  @db.Decimal(8, 4)
+  // Obsolete: IPCO category is stored in denominationId.
   category   String?
+  denominationId String?
   priceDate  DateTime?
   isActive   Boolean   @default(true)
 
   rubroLabor RubroLabor[]
+  denomination IpcoDenomination? @relation(fields: [denominationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([roleName])
   @@index([code])
+  @@index([denominationId])
 }
 
 model EquipmentItem {
@@ -190,16 +219,19 @@ model EquipmentItem {
   maintenanceNotes    String?
   cpc                 String?
   vae                 Decimal?  @db.Decimal(8, 4)
+  denominationId      String?
   priceDate           DateTime?
   isActive            Boolean   @default(true)
 
   rubroEquipment RubroEquipment[]
+  denomination IpcoDenomination? @relation(fields: [denominationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([description])
   @@index([code])
+  @@index([denominationId])
 }
 
 model Rubro {
@@ -207,6 +239,7 @@ model Rubro {
   code               String            @unique
   description        String
   unit               String
+  // Obsolete: rubros/APU do not use IPCO category.
   category           String?
   performanceValue   Decimal?          @db.Decimal(12, 4)
   performanceUnit    String?
@@ -217,6 +250,7 @@ model Rubro {
   status             RubroStatus       @default(DRAFT)
   calculationStatus  CalculationStatus @default(PENDING)
   notes              String?
+  technicalSpecification String?
   sourceExcelSheet   String?
 
   createdById String?
@@ -246,6 +280,7 @@ model RubroMaterial {
   materialId       String
   quantity         Decimal @db.Decimal(12, 4)
   unit             String?
+  priceOption      Int     @default(1)
   unitCostSnapshot Decimal @db.Decimal(12, 4)
   totalCost        Decimal @db.Decimal(12, 4)
   notes            String?
@@ -311,18 +346,21 @@ model RubroTransport {
   code        String? @unique
   description String
   unit        String?
+  denominationId String?
   quantity    Decimal @db.Decimal(12, 4)
   unitCost    Decimal @db.Decimal(12, 4)
   totalCost   Decimal @db.Decimal(12, 4)
   notes       String?
 
   rubro Rubro @relation(fields: [rubroId], references: [id], onDelete: Cascade)
+  denomination IpcoDenomination? @relation(fields: [denominationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([rubroId])
   @@index([code])
+  @@index([denominationId])
 }
 
 model Project {
@@ -392,6 +430,7 @@ model BudgetItem {
   itemNumber                String
   rubroCodeSnapshot         String
   descriptionSnapshot       String
+  technicalSpecificationSnapshot String?
   unitSnapshot              String
   quantity                  Decimal @db.Decimal(12, 4)
   indirectPercentageApplied Decimal @default(0) @db.Decimal(8, 4)

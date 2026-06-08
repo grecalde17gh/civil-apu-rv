@@ -1,4 +1,4 @@
-import type { LaborItem } from '@prisma/client'
+import type { IpcoDenomination, LaborItem } from '@prisma/client'
 import type { RubroLaborWithLabor } from '@/src/lib/db/rubroLabor'
 import { addRubroLaborAction, deleteRubroLaborAction, updateRubroLaborAction } from '@/app/rubros/actions'
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
@@ -7,7 +7,7 @@ import InlineEditableCell from './InlineEditableCell'
 
 type RubroLaborSectionProps = {
   rubroId: string
-  laborItems: LaborItem[]
+  laborItems: Array<LaborItem & { denomination?: IpcoDenomination | null }>
   rubroLabor: RubroLaborWithLabor[]
 }
 
@@ -15,7 +15,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
   const laborOptions = laborItems.map((labor) => ({
     id: labor.id,
     label: formatCatalogOption([labor.code, labor.roleName, 'hora'], labor.hourlyCost.toString()),
-    searchText: [labor.code, labor.roleName, labor.category, 'hora', labor.hourlyCost.toString()].join(' '),
+    searchText: [labor.code, labor.roleName, labor.denomination?.code, labor.denomination?.name, 'hora', labor.hourlyCost.toString()].join(' '),
   }))
 
   return (
@@ -34,7 +34,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
             <CatalogCombobox
               name="laborItemId"
               options={laborOptions}
-              placeholder="Codigo, rol o categoria"
+              placeholder="Codigo, rol o denominacion"
               emptyLabel="No hay mano de obra que coincida."
             />
           </label>
@@ -87,7 +87,6 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                   rubroId,
                   workerQuantity: line.workerQuantity.toString(),
                   timeRequired,
-                  hourlyCostSnapshot: line.hourlyCostSnapshot.toString(),
                   notes: line.notes ?? '',
                 }
 
@@ -110,13 +109,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                       payload={payload}
                       required
                     />
-                    <InlineEditableCell
-                      actionName="labor"
-                      fieldName="hourlyCostSnapshot"
-                      value={line.hourlyCostSnapshot.toString()}
-                      payload={payload}
-                      required
-                    />
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.hourlyCostSnapshot.toString()}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                       {line.totalCost.toString()}
                     </td>
@@ -144,10 +137,10 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                           Rendimiento/horas
                           <input name="timeRequired" defaultValue={line.timeRequired?.toString() ?? '0'} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
                         </label>
-                        <label className="text-xs font-medium text-slate-600">
+                        <div className="text-xs font-medium text-slate-600">
                           Tarifa
-                          <input name="hourlyCostSnapshot" defaultValue={line.hourlyCostSnapshot.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
+                          <p className="mt-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm tabular-nums text-slate-700">{line.hourlyCostSnapshot.toString()}</p>
+                        </div>
                         <label className="text-xs font-medium text-slate-600">
                           Observacion
                           <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />

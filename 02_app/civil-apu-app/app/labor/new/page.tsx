@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import LaborForm from '@/src/components/labor/LaborForm'
 import { createLaborAction } from '../actions'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 
-export default function NewLaborPage() {
+export default async function NewLaborPage() {
+  const denominations = await getIpcoDenominations()
+
   return (
     <div className="min-h-screen bg-zinc-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
@@ -19,7 +22,7 @@ export default function NewLaborPage() {
           </Link>
         </div>
 
-        <LaborForm action={createLaborAction} submitLabel="Crear item" />
+        <LaborForm action={createLaborAction} submitLabel="Crear item" denominations={denominations} />
       </div>
     </div>
   )

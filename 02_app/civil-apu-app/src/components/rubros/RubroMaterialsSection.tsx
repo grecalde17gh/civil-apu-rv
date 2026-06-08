@@ -1,4 +1,4 @@
-import type { Material } from '@prisma/client'
+import type { IpcoDenomination, Material } from '@prisma/client'
 import type { RubroMaterialWithMaterial } from '@/src/lib/db/rubroMaterials'
 import { addRubroMaterialAction, deleteRubroMaterialAction, updateRubroMaterialAction } from '@/app/rubros/actions'
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
@@ -7,7 +7,7 @@ import InlineEditableCell from './InlineEditableCell'
 
 type RubroMaterialsSectionProps = {
   rubroId: string
-  materials: Material[]
+  materials: Array<Material & { denomination?: IpcoDenomination | null }>
   rubroMaterials: RubroMaterialWithMaterial[]
 }
 
@@ -16,9 +16,9 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
     id: material.id,
     label: formatCatalogOption(
       [material.code, material.description, material.unit],
-      material.unitCost.toString(),
+      material.price1.toString(),
     ),
-    searchText: [material.code, material.description, material.unit, material.unitCost.toString()].join(' '),
+    searchText: [material.code, material.description, material.unit, material.denomination?.code, material.denomination?.name, material.price1.toString()].join(' '),
   }))
 
   return (
@@ -29,7 +29,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
           <h2 className="text-base font-semibold text-slate-950">Composicion de materiales</h2>
         </div>
 
-        <form action={addRubroMaterialAction} className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_110px_130px]">
+        <form action={addRubroMaterialAction} className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_110px_110px_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -37,7 +37,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
             <CatalogCombobox
               name="materialId"
               options={materialOptions}
-              placeholder="Codigo, descripcion o unidad"
+              placeholder="Codigo, descripcion o denominacion"
               emptyLabel="No hay materiales que coincidan."
             />
           </label>
@@ -45,6 +45,15 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Cantidad
             <input name="quantity" required inputMode="decimal" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
+          </label>
+
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Precio
+            <select name="priceOption" defaultValue="1" className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
+              <option value="1">Precio 1</option>
+              <option value="2">Precio 2</option>
+              <option value="3">Precio 3</option>
+            </select>
           </label>
 
           <div className="flex items-end">
@@ -63,7 +72,8 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio aplicado</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo unitario</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
@@ -72,7 +82,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
           <tbody className="divide-y divide-slate-200">
             {rubroMaterials.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-5 text-sm text-slate-500">
+                <td colSpan={9} className="px-3 py-5 text-sm text-slate-500">
                   No hay materiales agregados al rubro.
                 </td>
               </tr>
@@ -83,9 +93,14 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                   rubroId,
                   quantity: line.quantity.toString(),
                   unit: line.unit ?? line.material.unit,
-                  unitCostSnapshot: line.unitCostSnapshot.toString(),
+                  priceOption: line.priceOption.toString(),
                   notes: line.notes ?? '',
                 }
+                const priceOptions = [
+                  { value: 1, label: 'Precio 1', available: true },
+                  { value: 2, label: 'Precio 2', available: line.material.price2 !== null },
+                  { value: 3, label: 'Precio 3', available: line.material.price3 !== null },
+                ]
 
                 return (
                   <tr key={line.id} className="hover:bg-blue-50/60">
@@ -99,13 +114,26 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                       payload={payload}
                       required
                     />
-                    <InlineEditableCell
-                      actionName="material"
-                      fieldName="unitCostSnapshot"
-                      value={line.unitCostSnapshot.toString()}
-                      payload={payload}
-                      required
-                    />
+                    <td className="px-3 py-2 text-slate-700">
+                      <form action={updateRubroMaterialAction} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={line.id} />
+                        <input type="hidden" name="rubroId" value={rubroId} />
+                        <input type="hidden" name="quantity" value={line.quantity.toString()} />
+                        <input type="hidden" name="unit" value={line.unit ?? line.material.unit} />
+                        <input type="hidden" name="notes" value={line.notes ?? ''} />
+                        <select name="priceOption" defaultValue={line.priceOption.toString()} className="h-7 rounded border border-slate-300 bg-white px-2 text-xs">
+                          {priceOptions.map((option) => (
+                            <option key={option.value} value={option.value} disabled={!option.available}>
+                              {option.label}{option.available ? '' : ' (no disponible)'}
+                            </option>
+                          ))}
+                        </select>
+                        <button type="submit" className="h-7 rounded border border-slate-300 px-2 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100">
+                          Cambiar
+                        </button>
+                      </form>
+                    </td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCostSnapshot.toString()}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                       {line.totalCost.toString()}
                     </td>
@@ -134,8 +162,14 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                           <input name="unit" defaultValue={line.unit ?? line.material.unit} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
                         </label>
                         <label className="text-xs font-medium text-slate-600">
-                          Precio
-                          <input name="unitCostSnapshot" defaultValue={line.unitCostSnapshot.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          Precio aplicado
+                          <select name="priceOption" defaultValue={line.priceOption.toString()} className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm">
+                            {priceOptions.map((option) => (
+                              <option key={option.value} value={option.value} disabled={!option.available}>
+                                {option.label}{option.available ? '' : ' (no disponible)'}
+                              </option>
+                            ))}
+                          </select>
                         </label>
                         <label className="text-xs font-medium text-slate-600">
                           Observacion

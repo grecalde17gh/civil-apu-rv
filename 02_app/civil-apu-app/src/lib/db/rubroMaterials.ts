@@ -1,10 +1,10 @@
 import { prisma } from './prisma'
-import type { Material, RubroMaterial } from '@prisma/client'
+import type { IpcoDenomination, Material, RubroMaterial } from '@prisma/client'
 import { calculateMaterialCost } from '@/src/lib/calculations/materials'
 import { updateRubroTotals } from './rubros'
 
 export type RubroMaterialWithMaterial = RubroMaterial & {
-  material: Material
+  material: Material & { denomination?: IpcoDenomination | null }
 }
 
 export async function getRubroMaterials(rubroId: string): Promise<RubroMaterialWithMaterial[]> {
@@ -19,6 +19,7 @@ export async function addRubroMaterial(params: {
   rubroId: string
   materialId: string
   quantity: number
+  priceOption: number
   notes?: string
 }): Promise<RubroMaterial> {
   const material = await prisma.material.findUnique({
@@ -29,7 +30,7 @@ export async function addRubroMaterial(params: {
     throw new Error('Material no encontrado')
   }
 
-  const unitCostSnapshot = Number(material.unitCost.toString())
+  const unitCostSnapshot = getMaterialPrice(material, params.priceOption)
   const totalCost = calculateMaterialCost(params.quantity, unitCostSnapshot)
 
   return prisma.$transaction(async (tx) => {
@@ -39,6 +40,7 @@ export async function addRubroMaterial(params: {
         materialId: params.materialId,
         quantity: params.quantity,
         unit: material.unit,
+        priceOption: params.priceOption,
         unitCostSnapshot,
         totalCost,
         notes: params.notes?.trim() || undefined,
@@ -56,10 +58,21 @@ export async function updateRubroMaterial(params: {
   rubroId: string
   quantity: number
   unit?: string
-  unitCostSnapshot: number
+  priceOption?: number
   notes?: string
 }): Promise<RubroMaterial> {
-  const totalCost = calculateMaterialCost(params.quantity, params.unitCostSnapshot)
+  const existing = await prisma.rubroMaterial.findUnique({
+    where: { id: params.id },
+    include: { material: { include: { denomination: true } } },
+  })
+
+  if (!existing) {
+    throw new Error('Material del rubro no encontrado')
+  }
+
+  const priceOption = params.priceOption ?? existing.priceOption
+  const unitCostSnapshot = getMaterialPrice(existing.material, priceOption)
+  const totalCost = calculateMaterialCost(params.quantity, unitCostSnapshot)
 
   return prisma.$transaction(async (tx) => {
     const rubroMaterial = await tx.rubroMaterial.update({
@@ -67,7 +80,8 @@ export async function updateRubroMaterial(params: {
       data: {
         quantity: params.quantity,
         unit: params.unit?.trim() || undefined,
-        unitCostSnapshot: params.unitCostSnapshot,
+        priceOption,
+        unitCostSnapshot,
         totalCost,
         notes: params.notes?.trim() || undefined,
       },
@@ -77,6 +91,16 @@ export async function updateRubroMaterial(params: {
 
     return rubroMaterial
   })
+}
+
+function getMaterialPrice(material: Material, priceOption: number): number {
+  const price = priceOption === 1 ? material.price1 : priceOption === 2 ? material.price2 : material.price3
+
+  if (price === null || price === undefined) {
+    throw new Error(`Precio ${priceOption} no disponible para el material seleccionado`)
+  }
+
+  return Number(price.toString())
 }
 
 export async function deleteRubroMaterial(id: string): Promise<void> {

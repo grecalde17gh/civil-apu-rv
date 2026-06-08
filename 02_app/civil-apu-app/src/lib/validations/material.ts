@@ -1,24 +1,18 @@
 import { z } from 'zod'
 import { isValidCatalogCode } from '../catalogCodes'
+import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const nonNegativeNumber = z.preprocess((value) => {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed === '') return undefined
-    const number = Number(trimmed)
-    return Number.isNaN(number) ? value : number
-  }
-  return value
-}, z.number().finite().nonnegative())
+const nonNegativeNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
 
 const optionalNonNegativeNumber = z.preprocess((value) => {
   if (value === undefined || value === null) return undefined
   if (typeof value === 'string') {
     const trimmed = value.trim()
     if (trimmed === '') return undefined
-    const number = Number(trimmed)
+    const processed = decimalInputPreprocess(trimmed)
+    const number = typeof processed === 'number' ? processed : Number(trimmed)
     return Number.isNaN(number) ? value : number
   }
   return value
@@ -41,9 +35,12 @@ export const materialFormSchema = z.object({
   }),
   description: nonEmptyString,
   unit: nonEmptyString,
-  unitCost: nonNegativeNumber,
+  price1: nonNegativeNumber,
+  price2: optionalNonNegativeNumber,
+  price3: optionalNonNegativeNumber,
   cpc: z.string().trim().optional(),
   vae: optionalNonNegativeNumber,
+  denominationId: z.string().trim().optional(),
   usesCategory1: z.boolean().default(false),
   usesCategory2: z.boolean().default(false),
   priceDate: optionalDate,

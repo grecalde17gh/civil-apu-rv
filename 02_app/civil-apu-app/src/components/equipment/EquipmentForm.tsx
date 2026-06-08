@@ -1,13 +1,22 @@
 import type { EquipmentFormInput } from '@/src/lib/validations/equipment'
+import type { IpcoDenomination } from '@prisma/client'
+import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
 
 type EquipmentFormProps = {
   action: (formData: FormData) => Promise<void>
   initialData?: Partial<EquipmentFormInput>
+  denominations?: IpcoDenomination[]
   submitLabel: string
   hiddenId?: string
 }
 
-export default function EquipmentForm({ action, initialData, submitLabel, hiddenId }: EquipmentFormProps) {
+export default function EquipmentForm({ action, initialData, denominations = [], submitLabel, hiddenId }: EquipmentFormProps) {
+  const denominationOptions = denominations.map((denomination) => ({
+    id: denomination.id,
+    label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
+    searchText: [denomination.code, denomination.name].filter(Boolean).join(' '),
+  }))
+
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -31,6 +40,11 @@ export default function EquipmentForm({ action, initialData, submitLabel, hidden
           />
         </label>
       </div>
+
+      <label className="space-y-2 text-sm font-medium text-zinc-700">
+        Denominacion IPCO
+        <DenominationCombobox options={denominationOptions} initialId={initialData?.denominationId ?? ''} />
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">

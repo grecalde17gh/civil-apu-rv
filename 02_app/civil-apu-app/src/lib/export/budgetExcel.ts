@@ -18,6 +18,7 @@ export type BudgetExportData = {
     itemNumber: string
     rubroCodeSnapshot: string
     descriptionSnapshot: string
+    technicalSpecificationSnapshot?: string | null
     unitSnapshot: string
     quantity: DecimalLike
     unitPriceSnapshot: DecimalLike
@@ -66,6 +67,7 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
       { header: 'No.', key: 'itemNumber', width: 10 },
       { header: 'Codigo', key: 'code', width: 14 },
       { header: 'Descripcion', key: 'description', width: 42 },
+      { header: 'Especificacion tecnica', key: 'technicalSpecification', width: 48 },
       { header: 'Unidad', key: 'unit', width: 12 },
       { header: 'Cantidad', key: 'quantity', width: 14, numFmt: '#,##0.0000' },
       { header: 'Precio unitario', key: 'unitPrice', width: 16, numFmt: '#,##0.00' },
@@ -75,6 +77,7 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
       itemNumber: item.itemNumber,
       code: item.rubroCodeSnapshot,
       description: item.descriptionSnapshot,
+      technicalSpecification: item.technicalSpecificationSnapshot ?? '',
       unit: item.unitSnapshot,
       quantity: toNumber(item.quantity),
       unitPrice: toNumber(item.unitPriceSnapshot),
@@ -92,8 +95,6 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
       { header: 'Cantidad total', key: 'totalQuantity', width: 16, numFmt: '#,##0.0000' },
       { header: 'Costo unitario', key: 'unitCost', width: 16, numFmt: '#,##0.00' },
       { header: 'Costo total', key: 'totalCost', width: 16, numFmt: '#,##0.00' },
-      { header: 'Cat.1', key: 'usesCategory1', width: 10 },
-      { header: 'Cat.2', key: 'usesCategory2', width: 10 },
     ],
     consolidation.materials.map((row) => ({
       code: row.code,
@@ -102,8 +103,6 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
       totalQuantity: row.totalQuantity,
       unitCost: row.unitCost,
       totalCost: row.totalCost,
-      usesCategory1: row.usesCategory1 ? 'Si' : 'No',
-      usesCategory2: row.usesCategory2 ? 'Si' : 'No',
     })),
   )
 

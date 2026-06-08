@@ -20,8 +20,8 @@ export async function createMaterialAction(formData: FormData) {
   const data = Object.fromEntries(formData)
   const parsed = validateMaterialInput({
     ...data,
-    usesCategory1: formData.get('usesCategory1') === 'on',
-    usesCategory2: formData.get('usesCategory2') === 'on',
+    usesCategory1: false,
+    usesCategory2: false,
     isActive: formData.get('isActive') === 'on',
   })
 
@@ -38,8 +38,8 @@ export async function updateMaterialAction(formData: FormData) {
   const data = Object.fromEntries(formData)
   const parsed = validateMaterialInput({
     ...data,
-    usesCategory1: formData.get('usesCategory1') === 'on',
-    usesCategory2: formData.get('usesCategory2') === 'on',
+    usesCategory1: false,
+    usesCategory2: false,
     isActive: formData.get('isActive') === 'on',
   })
 

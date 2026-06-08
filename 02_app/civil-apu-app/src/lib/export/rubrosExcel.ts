@@ -6,6 +6,7 @@ type DecimalLike = number | string | null | undefined | { toString(): string }
 export type RubroSummaryExportRow = {
   code: string
   description: string
+  technicalSpecification?: string | null
   unit: string
   directCost?: DecimalLike
   indirectPercentage?: DecimalLike
@@ -84,6 +85,7 @@ export function buildRubroWorkbook(rubro: RubroDetailExport): ExcelJS.Workbook {
     [
       { field: 'Codigo', value: rubro.code },
       { field: 'Descripcion', value: rubro.description },
+      { field: 'Especificacion tecnica', value: rubro.technicalSpecification ?? '' },
       { field: 'Unidad', value: rubro.unit },
       { field: 'Rendimiento', value: performance },
       { field: 'Total materiales', value: rubro.totals.materialsSubtotal },

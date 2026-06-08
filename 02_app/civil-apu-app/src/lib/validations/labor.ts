@@ -45,6 +45,7 @@ export const laborFormSchema = z.object({
   cpc: z.string().trim().optional(),
   vae: optionalNonNegativeNumber,
   category: z.string().trim().optional(),
+  denominationId: z.string().trim().optional(),
   priceDate: optionalDate,
   isActive: z.boolean().default(true),
 })

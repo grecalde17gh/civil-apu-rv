@@ -37,7 +37,6 @@ const getMoneyValue = (value: Rubro['directCost']) => value?.toString() ?? '-'
 export default async function RubrosPage() {
   const rubros = await getRubros()
   const units = [...new Set(rubros.map((rubro) => rubro.unit).filter(Boolean))].sort()
-  const categories = [...new Set(rubros.map((rubro) => rubro.category).filter(Boolean))].sort()
   const calculatedCount = rubros.filter((rubro) => rubro.calculationStatus === 'CALCULATED').length
   const validatedCount = rubros.filter((rubro) => rubro.status === 'VALIDATED').length
   const withDirectCostCount = rubros.filter((rubro) => rubro.directCost !== null).length
@@ -133,16 +132,6 @@ export default async function RubrosPage() {
                 </label>
 
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Categoria
-                  <select className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950">
-                    <option>Todas</option>
-                    {categories.map((category) => (
-                      <option key={category}>{category}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Estado
                   <select className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm text-slate-950">
                     <option>Todos</option>
@@ -194,7 +183,7 @@ export default async function RubrosPage() {
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
                     <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo directo</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Indirectos ref.</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
@@ -216,7 +205,7 @@ export default async function RubrosPage() {
                         <td className="px-3 py-2 font-mono font-semibold text-slate-800">{rubro.code}</td>
                         <td className="px-3 py-2 text-slate-800">{rubro.description}</td>
                         <td className="px-3 py-2 text-slate-700">{rubro.unit}</td>
-                        <td className="px-3 py-2 text-slate-700">{rubro.category ?? '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">Pendiente</td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{getMoneyValue(rubro.directCost)}</td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">
                           {rubro.indirectPercentage.toString()}%

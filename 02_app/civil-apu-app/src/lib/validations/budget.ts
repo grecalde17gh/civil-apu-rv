@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
@@ -53,18 +54,24 @@ export function validateBudgetInput(data: unknown): BudgetFormInput {
 
 export const budgetItemSchema = z.object({
   rubroId: z.string().uuid(),
-  quantity: z.preprocess((value) => {
-    if (typeof value === 'string') {
-      const trimmed = value.trim()
-      const number = Number(trimmed)
-      return Number.isNaN(number) ? value : number
-    }
-    return value
-  }, z.number().finite().min(0.0001)),
+  quantity: z.preprocess(decimalInputPreprocess, z.number().finite().min(0.0001)),
 })
 
 export type BudgetItemInput = z.infer<typeof budgetItemSchema>
 
 export function validateBudgetItemInput(data: unknown): BudgetItemInput {
   return budgetItemSchema.parse(data)
+}
+
+export const budgetItemQuantitySchema = z.object({
+  budgetId: nonEmptyString,
+  budgetItemId: nonEmptyString,
+  projectId: optionalString,
+  quantity: z.preprocess(decimalInputPreprocess, z.number().finite().positive()),
+})
+
+export type BudgetItemQuantityInput = z.infer<typeof budgetItemQuantitySchema>
+
+export function validateBudgetItemQuantityInput(data: unknown): BudgetItemQuantityInput {
+  return budgetItemQuantitySchema.parse(data)
 }

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   recalculateBudgetTotals: vi.fn(),
   getBudgetItemsByBudgetId: vi.fn(),
   deleteBudgetItem: vi.fn(),
+  updateBudgetItemQuantity: vi.fn(),
   getBudgetByIdWithProject: vi.fn(),
   getProjectById: vi.fn(),
   getRubroById: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('@/src/lib/db/budgets', () => ({
   recalculateBudgetTotals: mocks.recalculateBudgetTotals,
   getBudgetItemsByBudgetId: mocks.getBudgetItemsByBudgetId,
   deleteBudgetItem: mocks.deleteBudgetItem,
+  updateBudgetItemQuantity: mocks.updateBudgetItemQuantity,
   getBudgetByIdWithProject: mocks.getBudgetByIdWithProject,
 }))
 
@@ -44,6 +46,12 @@ vi.mock('@/src/lib/validations/budget', () => ({
   validateBudgetItemInput: (data: Record<string, FormDataEntryValue>) => ({
     rubroId: data.rubroId,
     quantity: Number(data.quantity),
+  }),
+  validateBudgetItemQuantityInput: (data: Record<string, FormDataEntryValue>) => ({
+    budgetId: String(data.budgetId),
+    budgetItemId: String(data.budgetItemId),
+    projectId: data.projectId ? String(data.projectId) : undefined,
+    quantity: Number(String(data.quantity).replace(',', '.')),
   }),
 }))
 
@@ -79,7 +87,7 @@ vi.mock('@/src/lib/validations/rubroCompletion', () => ({
     Number(rubro.directCost?.toString() ?? '0') > 0,
 }))
 
-import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction } from './actions'
+import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction, updateBudgetItemQuantityAction } from './actions'
 
 describe('addBudgetItemAction', () => {
   beforeEach(() => {
@@ -194,5 +202,23 @@ describe('addBudgetItemAction', () => {
     await expect(copyBudgetAction(formData)).rejects.toThrow('REDIRECT:/projects/project-franklin/budgets/budget-copy/edit')
 
     expect(mocks.copyBudget).toHaveBeenCalledWith('budget-original')
+  })
+
+  it('updates a budget item quantity without touching the rubro master', async () => {
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('budgetItemId', 'budget-item-1')
+    formData.set('projectId', 'project-franklin')
+    formData.set('quantity', '2,5')
+
+    await expect(updateBudgetItemQuantityAction(formData)).rejects.toThrow('REDIRECT:/projects/project-franklin/budgets/budget-test1/edit')
+
+    expect(mocks.updateBudgetItemQuantity).toHaveBeenCalledWith({
+      budgetId: 'budget-test1',
+      budgetItemId: 'budget-item-1',
+      projectId: 'project-franklin',
+      quantity: 2.5,
+    })
+    expect(mocks.getRubroById).not.toHaveBeenCalled()
   })
 })

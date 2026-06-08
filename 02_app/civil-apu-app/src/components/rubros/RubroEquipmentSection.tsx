@@ -1,4 +1,4 @@
-import type { EquipmentItem } from '@prisma/client'
+import type { EquipmentItem, IpcoDenomination } from '@prisma/client'
 import type { RubroEquipmentWithItem } from '@/src/lib/db/rubroEquipment'
 import { addRubroEquipmentAction, deleteRubroEquipmentAction, updateRubroEquipmentAction } from '@/app/rubros/actions'
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
@@ -7,7 +7,7 @@ import InlineEditableCell from './InlineEditableCell'
 
 type RubroEquipmentSectionProps = {
   rubroId: string
-  equipmentItems: EquipmentItem[]
+  equipmentItems: Array<EquipmentItem & { denomination?: IpcoDenomination | null }>
   rubroEquipment: RubroEquipmentWithItem[]
 }
 
@@ -15,7 +15,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
   const equipmentOptions = equipmentItems.map((item) => ({
     id: item.id,
     label: formatCatalogOption([item.code, item.description, 'hora'], item.hourlyRate?.toString() ?? 'sin tarifa'),
-    searchText: [item.code, item.description, item.equipmentType, 'hora', item.hourlyRate?.toString() ?? ''].join(' '),
+    searchText: [item.code, item.description, item.equipmentType, item.denomination?.code, item.denomination?.name, 'hora', item.hourlyRate?.toString() ?? ''].join(' '),
     disabled: item.hourlyRate === null,
     disabledReason: item.hourlyRate === null ? 'Sin tarifa horaria vigente' : undefined,
   }))
@@ -36,7 +36,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
             <CatalogCombobox
               name="equipmentItemId"
               options={equipmentOptions}
-              placeholder="Codigo, equipo o tipo"
+              placeholder="Codigo, equipo o denominacion"
               emptyLabel="No hay equipos que coincidan."
             />
           </label>
@@ -89,7 +89,6 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                   rubroId,
                   equipmentQuantity: line.equipmentQuantity.toString(),
                   timeRequired,
-                  rateSnapshot: line.rateSnapshot.toString(),
                   notes: line.notes ?? '',
                 }
 
@@ -112,13 +111,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                       payload={payload}
                       required
                     />
-                    <InlineEditableCell
-                      actionName="equipment"
-                      fieldName="rateSnapshot"
-                      value={line.rateSnapshot.toString()}
-                      payload={payload}
-                      required
-                    />
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.rateSnapshot.toString()}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
                     <InlineEditableCell
                       actionName="equipment"
@@ -144,10 +137,10 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                           Rendimiento/horas
                           <input name="timeRequired" defaultValue={line.timeRequired?.toString() ?? '0'} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
                         </label>
-                        <label className="text-xs font-medium text-slate-600">
+                        <div className="text-xs font-medium text-slate-600">
                           Tarifa
-                          <input name="rateSnapshot" defaultValue={line.rateSnapshot.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
+                          <p className="mt-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm tabular-nums text-slate-700">{line.rateSnapshot.toString()}</p>
+                        </div>
                         <label className="text-xs font-medium text-slate-600">
                           Observacion
                           <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />

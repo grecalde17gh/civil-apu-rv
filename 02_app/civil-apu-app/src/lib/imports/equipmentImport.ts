@@ -4,6 +4,7 @@ import {
   areImportNumbersEqual,
   assignMissingCatalogCodes,
   buildCatalogTemplateBuffer,
+  buildDenominationLookup,
   cleanString,
   findDuplicateCodes,
   hasImportValue,
@@ -13,6 +14,7 @@ import {
   parseImportBoolean,
   parseImportNumber,
   parseOptionalPercentageInput,
+  resolveDenominationId,
   type ImportApplyResult,
   type ImportCellValue,
   type ImportConflict,
@@ -42,7 +44,7 @@ const equipmentSheetConfig = {
     Cpc: ['cpc'],
     Vae: ['vae'],
     EquipmentType: ['tipo', 'equipment_type', 'equipmenttype'],
-    Category: ['categoria', 'category'],
+    Category: ['categoria', 'category', 'denominacion', 'denominacion_ipco'],
     IsActive: ['estado', 'activo', 'isactive', 'is active'],
   },
 }
@@ -202,9 +204,12 @@ export async function applyEquipmentImport(rows: EquipmentImportRow[]): Promise<
     hourlyRate: number
     cpc?: string
     vae?: number
+    denominationId?: string
     maintenanceRequired: boolean
     isActive: boolean
   }> = []
+  const denominations = await prisma.ipcoDenomination.findMany({ select: { id: true, code: true, name: true } })
+  const denominationLookup = buildDenominationLookup(denominations)
 
   for (const row of preview) {
     if (row.status === 'existing') {
@@ -227,6 +232,7 @@ export async function applyEquipmentImport(rows: EquipmentImportRow[]): Promise<
       hourlyRate: Number(row.data.HourlyRate),
       cpc: cleanString(row.data.Cpc) ?? undefined,
       vae: row.data.Vae ?? undefined,
+      denominationId: resolveDenominationId(row.data.Category, denominationLookup),
       maintenanceRequired: false,
       isActive: row.data.IsActive ?? true,
     })

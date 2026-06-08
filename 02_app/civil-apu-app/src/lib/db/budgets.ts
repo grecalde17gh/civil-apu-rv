@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import type { Budget, BudgetStatus, BudgetItem, Prisma } from '@prisma/client'
-import { calculateTaxAmount } from '@/src/lib/calculations/budget'
+import { calculateBudgetItemTotal, calculateTaxAmount } from '@/src/lib/calculations/budget'
 import { buildCopyName, generateCopyCode } from './copy'
 
 export async function getBudgetsByProjectId(projectId: string): Promise<Budget[]> {
@@ -64,6 +64,7 @@ export async function createBudgetItem(data: {
   itemNumber: string
   rubroCodeSnapshot: string
   descriptionSnapshot: string
+  technicalSpecificationSnapshot?: string
   unitSnapshot: string
   quantity: number
   indirectPercentageApplied: number
@@ -81,6 +82,7 @@ export async function createBudgetItem(data: {
       itemNumber: data.itemNumber,
       rubroCodeSnapshot: data.rubroCodeSnapshot,
       descriptionSnapshot: data.descriptionSnapshot,
+      technicalSpecificationSnapshot: data.technicalSpecificationSnapshot ?? undefined,
       unitSnapshot: data.unitSnapshot,
       quantity: data.quantity,
       indirectPercentageApplied: data.indirectPercentageApplied,
@@ -96,6 +98,37 @@ export async function createBudgetItem(data: {
 
 export async function deleteBudgetItem(budgetItemId: string): Promise<void> {
   await prisma.budgetItem.delete({ where: { id: budgetItemId } })
+}
+
+export async function updateBudgetItemQuantity(params: {
+  budgetId: string
+  budgetItemId: string
+  quantity: number
+}): Promise<BudgetItem> {
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.budgetItem.findUnique({
+      where: { id: params.budgetItemId },
+    })
+
+    if (!item || item.budgetId !== params.budgetId) {
+      throw new Error('Item de presupuesto no encontrado')
+    }
+
+    const unitPriceSnapshot = Number(item.unitPriceSnapshot.toString())
+    const subtotalSnapshot = calculateBudgetItemTotal(params.quantity, unitPriceSnapshot)
+    const updated = await tx.budgetItem.update({
+      where: { id: params.budgetItemId },
+      data: {
+        quantity: params.quantity,
+        subtotalSnapshot,
+        totalPrice: subtotalSnapshot,
+      },
+    })
+
+    await recalculateBudgetTotals(params.budgetId, tx)
+
+    return updated
+  })
 }
 
 export async function recalculateBudgetTotals(budgetId: string, tx: Prisma.TransactionClient = prisma): Promise<void> {
@@ -208,6 +241,7 @@ export async function copyBudget(budgetId: string): Promise<Budget> {
             itemNumber: item.itemNumber,
             rubroCodeSnapshot: item.rubroCodeSnapshot,
             descriptionSnapshot: item.descriptionSnapshot,
+            technicalSpecificationSnapshot: item.technicalSpecificationSnapshot,
             unitSnapshot: item.unitSnapshot,
             quantity: item.quantity,
             indirectPercentageApplied: item.indirectPercentageApplied,

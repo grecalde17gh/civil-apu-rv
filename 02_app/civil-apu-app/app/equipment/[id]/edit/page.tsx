@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EquipmentForm from '@/src/components/equipment/EquipmentForm'
 import { getEquipmentById } from '@/src/lib/db/equipment'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 import { updateEquipmentAction } from '../../actions'
 
 type EquipmentPageProps = {
@@ -14,6 +15,7 @@ export default async function EditEquipmentPage({ params }: EquipmentPageProps) 
   const { id } = await params
 
   const item = await getEquipmentById(id)
+  const denominations = await getIpcoDenominations()
 
   if (!item) {
     notFound()
@@ -30,6 +32,7 @@ export default async function EditEquipmentPage({ params }: EquipmentPageProps) 
     maintenanceNotes: item.maintenanceNotes ?? undefined,
     cpc: item.cpc ?? undefined,
     vae: item.vae !== null && item.vae !== undefined ? Number(item.vae.toString()) : undefined,
+    denominationId: item.denominationId ?? undefined,
     priceDate: item.priceDate ?? undefined,
     isActive: item.isActive,
   }
@@ -50,7 +53,7 @@ export default async function EditEquipmentPage({ params }: EquipmentPageProps) 
           </Link>
         </div>
 
-        <EquipmentForm action={updateEquipmentAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} />
+        <EquipmentForm action={updateEquipmentAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} denominations={denominations} />
       </div>
     </div>
   )

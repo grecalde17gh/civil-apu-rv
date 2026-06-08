@@ -4,6 +4,7 @@ import {
   areImportNumbersEqual,
   assignMissingCatalogCodes,
   buildCatalogTemplateBuffer,
+  buildDenominationLookup,
   cleanString,
   findDuplicateCodes,
   hasImportValue,
@@ -13,6 +14,7 @@ import {
   parseImportBoolean,
   parseImportNumber,
   parseOptionalPercentageInput,
+  resolveDenominationId,
   type ImportApplyResult,
   type ImportCellValue,
   type ImportConflict,
@@ -41,7 +43,7 @@ const laborSheetConfig = {
     HourlyCost: ['costo', 'tarifa', 'hourlycost', 'hourly cost'],
     Cpc: ['cpc'],
     Vae: ['vae'],
-    Category: ['categoria', 'category'],
+    Category: ['categoria', 'category', 'denominacion', 'denominacion_ipco'],
     IsActive: ['estado', 'activo', 'isactive', 'is active'],
   },
 }
@@ -194,8 +196,11 @@ export async function applyLaborImport(rows: LaborImportRow[]): Promise<ImportAp
     cpc?: string
     vae?: number
     category?: string
+    denominationId?: string
     isActive: boolean
   }> = []
+  const denominations = await prisma.ipcoDenomination.findMany({ select: { id: true, code: true, name: true } })
+  const denominationLookup = buildDenominationLookup(denominations)
 
   for (const row of preview) {
     if (row.status === 'existing') {
@@ -217,7 +222,8 @@ export async function applyLaborImport(rows: LaborImportRow[]): Promise<ImportAp
       hourlyCost: Number(row.data.HourlyCost),
       cpc: cleanString(row.data.Cpc) ?? undefined,
       vae: row.data.Vae ?? undefined,
-      category: cleanString(row.data.Category) ?? undefined,
+      category: undefined,
+      denominationId: resolveDenominationId(row.data.Category, denominationLookup),
       isActive: row.data.IsActive ?? true,
     })
   }

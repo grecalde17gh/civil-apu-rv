@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import type { LaborItem, RubroLabor } from '@prisma/client'
 import { calculateLaborCost } from '@/src/lib/calculations/labor'
+import { resolveRubroTimeRequired } from '@/src/lib/calculations/rubroPerformance'
 import { updateRubroTotals } from './rubros'
 
 export type RubroLaborWithLabor = RubroLabor & {
@@ -30,11 +31,19 @@ export async function addRubroLabor(params: {
     throw new Error('Mano de obra no encontrada')
   }
 
+  const rubro = await prisma.rubro.findUnique({
+    where: { id: params.rubroId },
+    select: { performanceValue: true },
+  })
   const hourlyCostSnapshot = Number(laborItem.hourlyCost.toString())
+  const timeRequired = resolveRubroTimeRequired({
+    rubroPerformanceValue: rubro?.performanceValue ? Number(rubro.performanceValue.toString()) : null,
+    lineTimeRequired: params.timeRequired,
+  })
   const totalCost = calculateLaborCost({
     workerQuantity: params.workerQuantity,
     hourlyCost: hourlyCostSnapshot,
-    timeRequired: params.timeRequired,
+    timeRequired,
     performanceMode: 'MANUAL_TIME',
   })
 
@@ -45,7 +54,7 @@ export async function addRubroLabor(params: {
         laborItemId: params.laborItemId,
         workerQuantity: params.workerQuantity,
         hourlyCostSnapshot,
-        timeRequired: params.timeRequired,
+        timeRequired,
         performanceMode: 'MANUAL_TIME',
         totalCost,
         notes: params.notes?.trim() || undefined,
@@ -63,13 +72,30 @@ export async function updateRubroLabor(params: {
   rubroId: string
   workerQuantity: number
   timeRequired: number
-  hourlyCostSnapshot: number
   notes?: string
 }): Promise<RubroLabor> {
+  const existing = await prisma.rubroLabor.findUnique({
+    where: { id: params.id },
+    include: { laborItem: true },
+  })
+
+  if (!existing) {
+    throw new Error('Linea de mano de obra no encontrada')
+  }
+
+  const hourlyCostSnapshot = Number(existing.laborItem.hourlyCost.toString())
+  const rubro = await prisma.rubro.findUnique({
+    where: { id: params.rubroId },
+    select: { performanceValue: true },
+  })
+  const timeRequired = resolveRubroTimeRequired({
+    rubroPerformanceValue: rubro?.performanceValue ? Number(rubro.performanceValue.toString()) : null,
+    lineTimeRequired: params.timeRequired,
+  })
   const totalCost = calculateLaborCost({
     workerQuantity: params.workerQuantity,
-    hourlyCost: params.hourlyCostSnapshot,
-    timeRequired: params.timeRequired,
+    hourlyCost: hourlyCostSnapshot,
+    timeRequired,
     performanceMode: 'MANUAL_TIME',
   })
 
@@ -78,8 +104,8 @@ export async function updateRubroLabor(params: {
       where: { id: params.id },
       data: {
         workerQuantity: params.workerQuantity,
-        hourlyCostSnapshot: params.hourlyCostSnapshot,
-        timeRequired: params.timeRequired,
+        hourlyCostSnapshot,
+        timeRequired,
         totalCost,
         notes: params.notes?.trim() || undefined,
       },

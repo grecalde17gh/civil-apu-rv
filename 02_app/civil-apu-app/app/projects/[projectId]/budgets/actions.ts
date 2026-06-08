@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation'
 import { validateBudgetInput } from '@/src/lib/validations/budget'
 import { copyBudget, createBudget, updateBudget } from '@/src/lib/db/budgets'
 import { getProjectById } from '@/src/lib/db/projects'
-import { validateBudgetItemInput } from '@/src/lib/validations/budget'
+import { validateBudgetItemInput, validateBudgetItemQuantityInput } from '@/src/lib/validations/budget'
 import { getRubroById } from '@/src/lib/db/rubros'
-import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject } from '@/src/lib/db/budgets'
+import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject, updateBudgetItemQuantity } from '@/src/lib/db/budgets'
 import { calculateBudgetItemSnapshots } from '@/src/lib/calculations/budget'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 
@@ -117,6 +117,7 @@ async function createBudgetItemFromForm(formData: FormData): Promise<string> {
     itemNumber,
     rubroCodeSnapshot: rubro.code,
     descriptionSnapshot: rubro.description,
+    technicalSpecificationSnapshot: rubro.technicalSpecification ?? undefined,
     unitSnapshot: rubro.unit,
     quantity: parsed.quantity,
     indirectPercentageApplied: itemSnapshots.indirectPercentageApplied,
@@ -177,6 +178,19 @@ export async function deleteBudgetItemAction(formData: FormData) {
   } else {
     redirect('/projects')
   }
+}
+
+export async function updateBudgetItemQuantityAction(formData: FormData) {
+  const parsed = validateBudgetItemQuantityInput(Object.fromEntries(formData))
+
+  await updateBudgetItemQuantity(parsed)
+
+  const projectId = formData.get('projectId')
+  if (typeof projectId === 'string') {
+    redirect(`/projects/${projectId}/budgets/${parsed.budgetId}/edit`)
+  }
+
+  redirect('/projects')
 }
 
 export async function copyBudgetAction(formData: FormData) {

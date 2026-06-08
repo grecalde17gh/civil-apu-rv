@@ -1,12 +1,24 @@
-import type { RubroTransport } from '@prisma/client'
+import type { IpcoDenomination, RubroTransport } from '@prisma/client'
 import { addRubroTransportAction, deleteRubroTransportAction, updateRubroTransportAction } from '@/app/rubros/actions'
+import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
+
+type RubroTransportWithDenomination = RubroTransport & {
+  denomination?: IpcoDenomination | null
+}
 
 type RubroTransportSectionProps = {
   rubroId: string
-  rubroTransport: RubroTransport[]
+  rubroTransport: RubroTransportWithDenomination[]
+  denominations?: IpcoDenomination[]
 }
 
-export default function RubroTransportSection({ rubroId, rubroTransport }: RubroTransportSectionProps) {
+export default function RubroTransportSection({ rubroId, rubroTransport, denominations = [] }: RubroTransportSectionProps) {
+  const denominationOptions = denominations.map((denomination) => ({
+    id: denomination.id,
+    label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
+    searchText: [denomination.code, denomination.name].filter(Boolean).join(' '),
+  }))
+
   return (
     <section id="transporte" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
@@ -15,7 +27,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
           <h2 className="text-base font-semibold text-slate-950">Costos de transporte</h2>
         </div>
 
-        <form action={addRubroTransportAction} className="grid gap-2 lg:grid-cols-[110px_minmax(220px,1fr)_90px_95px_110px_130px]">
+        <form action={addRubroTransportAction} className="grid gap-2 lg:grid-cols-[110px_minmax(220px,1fr)_90px_95px_110px_minmax(220px,1fr)_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -43,6 +55,11 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
             <input name="unitCost" required inputMode="decimal" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
           </label>
 
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Denominacion IPCO
+            <DenominationCombobox options={denominationOptions} />
+          </label>
+
           <div className="flex items-end">
             <button type="submit" className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
               Agregar
@@ -60,6 +77,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
@@ -68,7 +86,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
           <tbody className="divide-y divide-slate-200">
             {rubroTransport.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-5 text-sm text-slate-500">
+                <td colSpan={9} className="px-3 py-5 text-sm text-slate-500">
                   No hay transporte registrado para este rubro.
                 </td>
               </tr>
@@ -80,6 +98,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
                   <td className="px-3 py-2 text-slate-700">{line.unit ?? '-'}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.quantity.toString()}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCost.toString()}</td>
+                  <td className="px-3 py-2 text-slate-700">{line.denomination ? [line.denomination.code, line.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                   <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
                   <td className="px-3 py-2 text-slate-600">{line.notes ?? '-'}</td>
                   <td className="px-3 py-2 text-slate-700">
@@ -109,6 +128,10 @@ export default function RubroTransportSection({ rubroId, rubroTransport }: Rubro
                         <label className="text-xs font-medium text-slate-600">
                           Precio
                           <input name="unitCost" defaultValue={line.unitCost.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-xs font-medium text-slate-600">
+                          Denominacion IPCO
+                          <DenominationCombobox options={denominationOptions} initialId={line.denominationId ?? ''} />
                         </label>
                         <label className="text-xs font-medium text-slate-600">
                           Observacion

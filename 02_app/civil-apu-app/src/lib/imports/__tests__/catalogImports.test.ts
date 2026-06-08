@@ -25,6 +25,9 @@ const mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
       createMany: vi.fn(),
     },
+    ipcoDenomination: {
+      findMany: vi.fn(),
+    },
   },
 }))
 
@@ -92,6 +95,7 @@ describe('catalog Excel imports', () => {
     mocks.prisma.equipmentItem.findMany.mockResolvedValue([])
     mocks.prisma.equipmentItem.findUnique.mockResolvedValue(null)
     mocks.prisma.equipmentItem.createMany.mockImplementation(async ({ data }) => ({ count: data.length }))
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([])
   })
 
   it('parses decimal comma and latin thousands formats', () => {
@@ -119,7 +123,7 @@ describe('catalog Excel imports', () => {
     expect(parseBooleanInput('0')).toBe(false)
   })
 
-  it('generates MAT codes and assigns material categories by default when category columns are absent', async () => {
+  it('generates MAT codes and imports material without category columns', async () => {
     const buffer = await workbookBuffer('Materiales', ['codigo', 'descripcion', 'unidad', 'costo'], [
       [null, 'Cemento', 'saco', '1.234,56'],
     ])
@@ -130,7 +134,7 @@ describe('catalog Excel imports', () => {
     expect(preview[0].data).toMatchObject({
       Code: 'MAT-001',
       UnitPrice: 1234.56,
-      UsesCategory1: true,
+      UsesCategory1: false,
       UsesCategory2: false,
     })
     expect(preview[0].originalValues.UnitPrice).toBe('1.234,56')
@@ -248,7 +252,7 @@ describe('catalog Excel imports', () => {
     const preview = await previewMaterialsFromBuffer(buffer)
 
     expect(preview[0].status).toBe('conflict')
-    expect(preview[0].conflicts).toContainEqual({ field: 'costo', existing: 8.5, incoming: 8.75 })
+    expect(preview[0].conflicts).toContainEqual({ field: 'precio_1', existing: 8.5, incoming: 8.75 })
   })
 
   it('detects duplicate material without code by normalized description and does not generate a new code', async () => {
@@ -334,7 +338,7 @@ describe('catalog Excel imports', () => {
 
     const preview = await previewMaterialsFromBuffer(buffer)
 
-    expect(preview[0].errors).toContain('UnitPrice debe ser >= 0')
+    expect(preview[0].errors).toContain('Precio 1 debe ser >= 0')
   })
 
   it('reports duplicate catalog codes inside the same file', async () => {
@@ -395,9 +399,39 @@ describe('catalog Excel imports', () => {
     expect(result).toEqual({ created: 1, updated: 0, omitted: 0, conflicts: 0, rejected: 1 })
     expect(mocks.prisma.material.createMany).toHaveBeenCalledTimes(1)
     expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ code: 'MAT-001', unitCost: 10, usesCategory1: true, usesCategory2: false })],
+      data: [expect.objectContaining({ code: 'MAT-001', unitCost: 10, usesCategory1: false, usesCategory2: false })],
     })
     expect(mocks.createMaterial).not.toHaveBeenCalled()
+  })
+
+  it('assigns an existing IPCO denomination when importing material with denomination', async () => {
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([{ id: 'den-1', code: 'A.1', name: 'Cemento Portland' }])
+
+    await applyMaterialsImport([
+      { rowNumber: 2, Code: 'MAT-001', Description: 'Cemento', Unit: 'saco', UnitPrice: 10, Denomination: 'Cemento Portland' },
+    ])
+
+    expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ denominationId: 'den-1' })],
+    })
+  })
+
+  it('assigns an existing IPCO denomination when importing labor and equipment', async () => {
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([{ id: 'den-1', code: 'B.2', name: 'Mano de obra especializada' }])
+
+    await applyLaborImport([
+      { rowNumber: 2, Code: 'MO-001', RoleName: 'Peon', Unit: 'hora', HourlyCost: 3.25, Category: 'B.2' },
+    ])
+    await applyEquipmentImport([
+      { rowNumber: 2, Code: 'EQ-001', Description: 'Concretera', Unit: 'hora', HourlyRate: 8, Category: 'Mano de obra especializada' },
+    ])
+
+    expect(mocks.prisma.laborItem.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ denominationId: 'den-1' })],
+    })
+    expect(mocks.prisma.equipmentItem.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ denominationId: 'den-1' })],
+    })
   })
 
   it('inserts multiple new materials with one batch createMany call', async () => {
@@ -457,7 +491,7 @@ describe('catalog Excel imports', () => {
 
     expect(workbook.worksheets[0].name).toBe('Materiales')
     expect(MATERIALS_TEMPLATE_FILE_NAME).toBe('materiales.xlsx')
-    expect(sheetHeaders(workbook)).toEqual(['codigo', 'descripcion', 'unidad', 'costo', 'cpc', 'vae'])
+    expect(sheetHeaders(workbook)).toEqual(['codigo', 'descripcion', 'unidad', 'precio_1', 'precio_2', 'precio_3', 'cpc', 'vae'])
   })
 
   it('uses mano_de_obra as labor template download filename', async () => {

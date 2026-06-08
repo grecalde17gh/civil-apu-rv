@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import type { LaborItem } from '@prisma/client'
+import type { LaborItem, Prisma } from '@prisma/client'
 import { generateNextCatalogCode } from '../catalogCodes'
 import { buildCopyName } from './copy'
 
@@ -11,12 +11,16 @@ export type LaborFormInput = {
   cpc?: string
   vae?: number
   category?: string
+  denominationId?: string
   priceDate?: Date
   isActive: boolean
 }
 
-export async function getLaborItems(): Promise<LaborItem[]> {
+export type LaborWithDenomination = Prisma.LaborItemGetPayload<{ include: { denomination: true } }>
+
+export async function getLaborItems(): Promise<LaborWithDenomination[]> {
   return prisma.laborItem.findMany({
+    include: { denomination: true },
     orderBy: { updatedAt: 'desc' },
   })
 }
@@ -39,6 +43,7 @@ export async function createLabor(data: LaborFormInput): Promise<LaborItem> {
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
       category: data.category || undefined,
+      denominationId: data.denominationId || undefined,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -56,6 +61,7 @@ export async function updateLabor(id: string, data: LaborFormInput): Promise<Lab
       cpc: data.cpc || undefined,
       vae: data.vae ?? undefined,
       category: data.category || undefined,
+      denominationId: data.denominationId || null,
       priceDate: data.priceDate ?? undefined,
       isActive: data.isActive,
     },
@@ -87,6 +93,7 @@ export async function copyLabor(id: string): Promise<LaborItem> {
       cpc: labor.cpc,
       vae: labor.vae,
       category: labor.category,
+      denominationId: labor.denominationId,
       priceDate: labor.priceDate,
       isActive: labor.isActive,
     },

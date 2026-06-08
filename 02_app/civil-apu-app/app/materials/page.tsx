@@ -19,8 +19,8 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
     q: getParam(params, 'q') ?? '',
     unit: getParam(params, 'unit') ?? 'all',
     status: getParam(params, 'status') ?? 'all',
-    cat1: getParam(params, 'cat1') ?? 'all',
-    cat2: getParam(params, 'cat2') ?? 'all',
+    cat1: 'all',
+    cat2: 'all',
     minCost: getParam(params, 'minCost') ?? '',
     maxCost: getParam(params, 'maxCost') ?? '',
   }
@@ -28,8 +28,6 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
   const filteredMaterials = filterMaterials(materials, filters)
   const units = [...new Set(materials.map((material) => material.unit).filter(Boolean))].sort()
   const activeCount = materials.filter((material) => material.isActive).length
-  const category1Count = materials.filter((material) => material.usesCategory1).length
-  const category2Count = materials.filter((material) => material.usesCategory2).length
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -68,8 +66,8 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
               <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{units.length}</p>
             </div>
             <div className="bg-white px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cat. 1 / Cat. 2</p>
-              <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{category1Count} / {category2Count}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Denominacion IPCO</p>
+              <p className="mt-1 font-mono text-sm font-semibold tabular-nums">Catalogo</p>
             </div>
           </div>
         </header>
@@ -121,25 +119,6 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Cat.1
-                  <select name="cat1" defaultValue={filters.cat1} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-                    <option value="all">Todas</option>
-                    <option value="yes">Si</option>
-                    <option value="no">No</option>
-                  </select>
-                </label>
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Cat.2
-                  <select name="cat2" defaultValue={filters.cat2} className="mt-1 h-8 w-full rounded border border-slate-300 bg-white px-2 text-sm">
-                    <option value="all">Todas</option>
-                    <option value="yes">Si</option>
-                    <option value="no">No</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
                 <button type="submit" className="h-8 rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
                   Aplicar filtros
                 </button>
@@ -165,9 +144,10 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
                     <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.1</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.2</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 1</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 2</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 3</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -175,7 +155,7 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                 <tbody className="divide-y divide-slate-200">
                   {filteredMaterials.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-3 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={9} className="px-3 py-10 text-center text-sm text-slate-500">
                         {materials.length === 0 ? 'No hay materiales registrados.' : 'No se encontraron registros con los filtros aplicados.'}
                       </td>
                     </tr>
@@ -185,9 +165,10 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 font-mono text-slate-700">{material.code || '-'}</td>
                         <td className="px-3 py-2 text-slate-800">{material.description}</td>
                         <td className="px-3 py-2 text-slate-700">{material.unit}</td>
-                        <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{material.unitCost.toString()}</td>
-                        <td className="px-3 py-2 text-slate-700">{material.usesCategory1 ? 'Si' : 'No'}</td>
-                        <td className="px-3 py-2 text-slate-700">{material.usesCategory2 ? 'Si' : 'No'}</td>
+                        <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{material.price1.toString()}</td>
+                        <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{material.price2?.toString() ?? '-'}</td>
+                        <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{material.price3?.toString() ?? '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{material.denomination ? [material.denomination.code, material.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{material.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap gap-2">

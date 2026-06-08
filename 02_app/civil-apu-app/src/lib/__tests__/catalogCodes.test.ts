@@ -53,7 +53,7 @@ describe('catalog codes', () => {
 
   it('rejects invalid manual codes in catalog forms', () => {
     expect(() =>
-      validateMaterialInput({ code: 'MAT-ABC', description: 'Cemento', unit: 'kg', unitCost: '1' }),
+      validateMaterialInput({ code: 'MAT-ABC', description: 'Cemento', unit: 'kg', price1: '1' }),
     ).toThrow()
     expect(() => validateLaborInput({ code: 'M-001', roleName: 'Albanil', hourlyCost: '1' })).toThrow()
     expect(() => validateEquipmentInput({ code: '001', description: 'Concretera', hourlyRate: '1' })).toThrow()
@@ -70,7 +70,7 @@ describe('catalog codes', () => {
   })
 
   it('accepts valid manual codes in catalog forms', () => {
-    expect(validateMaterialInput({ code: 'MAT-001', description: 'Cemento', unit: 'kg', unitCost: '1' }).code).toBe(
+    expect(validateMaterialInput({ code: 'MAT-001', description: 'Cemento', unit: 'kg', price1: '1' }).code).toBe(
       'MAT-001',
     )
     expect(validateLaborInput({ code: 'MO-001', roleName: 'Albanil', hourlyCost: '1' }).code).toBe('MO-001')

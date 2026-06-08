@@ -38,6 +38,7 @@ export const equipmentFormSchema = z.object({
   maintenanceNotes: z.string().trim().optional(),
   cpc: z.string().trim().optional(),
   vae: optionalNonNegativeNumber,
+  denominationId: z.string().trim().optional(),
   priceDate: optionalDate,
   isActive: z.boolean().default(true),
 })

@@ -352,8 +352,6 @@ function CatalogPreviewTable<T extends CatalogRow>({
   getCost: (row: T) => number | null | undefined
   onApply: () => void
 }) {
-  const showMaterialCategories = rows.some((row) => row.data.UsesCategory1 !== undefined || row.data.UsesCategory2 !== undefined)
-
   return (
     <section className="overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-2 border-b border-slate-300 bg-slate-800 px-3 py-2 text-white sm:flex-row sm:items-center sm:justify-between">
@@ -380,12 +378,6 @@ function CatalogPreviewTable<T extends CatalogRow>({
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">{costHeader} normalizado</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
-              {showMaterialCategories ? (
-                <>
-                  <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.1</th>
-                  <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cat.2</th>
-                </>
-              ) : null}
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Errores</th>
             </tr>
@@ -404,12 +396,6 @@ function CatalogPreviewTable<T extends CatalogRow>({
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{getCost(row.data) ?? ''}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{row.data.Cpc ?? ''}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{row.data.Vae ?? ''}</td>
-                  {showMaterialCategories ? (
-                    <>
-                      <td className="px-3 py-2 text-slate-700">{row.data.UsesCategory1 ? 'Si' : 'No'}</td>
-                      <td className="px-3 py-2 text-slate-700">{row.data.UsesCategory2 ? 'Si' : 'No'}</td>
-                    </>
-                  ) : null}
                   <td className="px-3 py-2 font-semibold text-slate-700">{getStatusLabel(row.status)}</td>
                   <td className="px-3 py-2 text-slate-700">{messages.join('; ') || '-'}</td>
                 </tr>

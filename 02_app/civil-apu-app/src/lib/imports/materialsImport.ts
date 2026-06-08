@@ -4,6 +4,7 @@ import {
   areImportNumbersEqual,
   assignMissingCatalogCodes,
   buildCatalogTemplateBuffer,
+  buildDenominationLookup,
   cleanString,
   findDuplicateCodes,
   hasImportValue,
@@ -13,6 +14,7 @@ import {
   parseImportBoolean,
   parseImportNumber,
   parseOptionalPercentageInput,
+  resolveDenominationId,
   type ImportApplyResult,
   type ImportCellValue,
   type ImportConflict,
@@ -28,6 +30,9 @@ type ExistingMaterial = {
   code: string | null
   description: string
   unit: string
+  price1?: { toString(): string }
+  price2: { toString(): string } | null
+  price3: { toString(): string } | null
   unitCost: { toString(): string }
   cpc: string | null
   vae: { toString(): string } | null
@@ -40,9 +45,12 @@ const materialSheetConfig = {
     Description: ['descripcion', 'description'],
     Unit: ['unidad', 'unit'],
     UnitPrice: ['costo', 'precio', 'precio_unitario', 'unitprice', 'unit price'],
+    Price2: ['precio_2', 'precio 2', 'price_2', 'price 2'],
+    Price3: ['precio_3', 'precio 3', 'price_3', 'price 3'],
     Cpc: ['cpc'],
     Vae: ['vae'],
     Note: ['nota', 'observacion', 'note'],
+    Denomination: ['denominacion', 'denominacion_ipco', 'categoria', 'category'],
     IsActive: ['estado', 'activo', 'isactive', 'is active'],
     UsesCategory1: ['categoria_1', 'cat_1', 'category_1'],
     UsesCategory2: ['categoria_2', 'cat_2', 'category_2'],
@@ -83,6 +91,7 @@ function findExistingMaterial(row: MaterialImportRow, existing: ExistingMaterial
 
 function materialConflicts(row: MaterialImportRow, existing: ExistingMaterial): ImportConflict[] {
   const conflicts: ImportConflict[] = []
+  const existingPrice1 = existing.price1 ?? existing.unitCost
 
   if (normalizeImportText(row.Description) !== normalizeImportText(existing.description)) {
     conflicts.push({ field: 'descripcion', existing: existing.description, incoming: cleanString(row.Description) })
@@ -90,8 +99,14 @@ function materialConflicts(row: MaterialImportRow, existing: ExistingMaterial): 
   if (normalizeImportText(row.Unit) !== normalizeImportText(existing.unit)) {
     conflicts.push({ field: 'unidad', existing: existing.unit, incoming: cleanString(row.Unit) })
   }
-  if (!areImportNumbersEqual(row.UnitPrice, existing.unitCost.toString())) {
-    conflicts.push({ field: 'costo', existing: Number(existing.unitCost.toString()), incoming: row.UnitPrice ?? null })
+  if (!areImportNumbersEqual(row.UnitPrice, existingPrice1.toString())) {
+    conflicts.push({ field: 'precio_1', existing: Number(existingPrice1.toString()), incoming: row.UnitPrice ?? null })
+  }
+  if ((row.Price2 != null || existing.price2 != null) && !areImportNumbersEqual(row.Price2, existing.price2?.toString() ?? null)) {
+    conflicts.push({ field: 'precio_2', existing: existing.price2 ? Number(existing.price2.toString()) : null, incoming: row.Price2 ?? null })
+  }
+  if ((row.Price3 != null || existing.price3 != null) && !areImportNumbersEqual(row.Price3, existing.price3?.toString() ?? null)) {
+    conflicts.push({ field: 'precio_3', existing: existing.price3 ? Number(existing.price3.toString()) : null, incoming: row.Price3 ?? null })
   }
   if ((cleanString(row.Cpc) ?? '') !== (cleanString(existing.cpc) ?? '')) {
     conflicts.push({ field: 'cpc', existing: existing.cpc, incoming: cleanString(row.Cpc) })
@@ -104,11 +119,15 @@ function materialConflicts(row: MaterialImportRow, existing: ExistingMaterial): 
 }
 
 function materialExistingValues(existing: ExistingMaterial) {
+  const existingPrice1 = existing.price1 ?? existing.unitCost
+
   return {
     Code: existing.code,
     Description: existing.description,
     Unit: existing.unit,
-    UnitPrice: Number(existing.unitCost.toString()),
+    UnitPrice: Number(existingPrice1.toString()),
+    Price2: existing.price2 ? Number(existing.price2.toString()) : null,
+    Price3: existing.price3 ? Number(existing.price3.toString()) : null,
     Cpc: existing.cpc,
     Vae: existing.vae ? Number(existing.vae.toString()) : null,
   }
@@ -123,7 +142,7 @@ function getRowStatus(errors: string[], conflicts: ImportConflict[], existing: E
 
 async function buildMaterialPreviewRows(rows: MaterialImportRow[], rawValues: Map<number, Record<string, ImportCellValue>>): Promise<PreviewRow[]> {
   const existing = await prisma.material.findMany({
-    select: { id: true, code: true, description: true, unit: true, unitCost: true, cpc: true, vae: true },
+    select: { id: true, code: true, description: true, unit: true, price1: true, price2: true, price3: true, unitCost: true, cpc: true, vae: true },
   })
   const existingIndex = buildExistingMaterialIndex(existing)
   const duplicateCodes = findDuplicateCodes(rows)
@@ -186,11 +205,14 @@ export async function previewMaterialsFromBuffer(buffer: ArrayBuffer): Promise<P
     Description: cleanString(row.values.Description),
     Unit: cleanString(row.values.Unit),
     UnitPrice: parseImportNumber(row.values.UnitPrice),
+    Price2: parseImportNumber(row.values.Price2),
+    Price3: parseImportNumber(row.values.Price3),
     Cpc: formatNormalizedOptionalNumber(parseOptionalPercentageInput(row.values.Cpc)),
     Vae: parseOptionalPercentageInput(row.values.Vae),
     Note: cleanString(row.values.Note),
+    Denomination: cleanString(row.values.Denomination),
     IsActive: parseImportBoolean(row.values.IsActive),
-    UsesCategory1: parseImportBoolean(row.values.UsesCategory1) ?? true,
+    UsesCategory1: parseImportBoolean(row.values.UsesCategory1) ?? false,
     UsesCategory2: parseImportBoolean(row.values.UsesCategory2) ?? false,
   }))
 
@@ -207,13 +229,19 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<I
     code?: string
     description: string
     unit: string
+    price1: number
+    price2?: number
+    price3?: number
     unitCost: number
     cpc?: string
     vae?: number
+    denominationId?: string
     usesCategory1: boolean
     usesCategory2: boolean
     isActive: boolean
   }> = []
+  const denominations = await prisma.ipcoDenomination.findMany({ select: { id: true, code: true, name: true } })
+  const denominationLookup = buildDenominationLookup(denominations)
 
   for (const row of preview) {
     if (row.status === 'existing') {
@@ -233,10 +261,14 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<I
       code: cleanString(row.data.Code) ?? undefined,
       description: String(row.data.Description),
       unit: String(row.data.Unit),
+      price1: Number(row.data.UnitPrice),
+      price2: row.data.Price2 ?? undefined,
+      price3: row.data.Price3 ?? undefined,
       unitCost: Number(row.data.UnitPrice),
       cpc: cleanString(row.data.Cpc) ?? undefined,
       vae: row.data.Vae ?? undefined,
-      usesCategory1: row.data.UsesCategory1 ?? true,
+      denominationId: resolveDenominationId(row.data.Denomination, denominationLookup),
+      usesCategory1: row.data.UsesCategory1 ?? false,
       usesCategory2: row.data.UsesCategory2 ?? false,
       isActive: row.data.IsActive ?? true,
     })
@@ -252,7 +284,9 @@ export async function buildMaterialsTemplateBuffer(): Promise<Buffer> {
     { header: 'codigo', key: 'codigo', width: 14 },
     { header: 'descripcion', key: 'descripcion', width: 42 },
     { header: 'unidad', key: 'unidad', width: 12 },
-    { header: 'costo', key: 'costo', width: 14, numFmt: '#,##0.00' },
+    { header: 'precio_1', key: 'precio_1', width: 14, numFmt: '#,##0.00' },
+    { header: 'precio_2', key: 'precio_2', width: 14, numFmt: '#,##0.00' },
+    { header: 'precio_3', key: 'precio_3', width: 14, numFmt: '#,##0.00' },
     { header: 'cpc', key: 'cpc', width: 14 },
     { header: 'vae', key: 'vae', width: 14 },
   ])

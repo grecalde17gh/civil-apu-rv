@@ -7,6 +7,7 @@ import { updateRubroTotals } from './rubros'
 export async function getRubroTransport(rubroId: string): Promise<RubroTransport[]> {
   return prisma.rubroTransport.findMany({
     where: { rubroId },
+    include: { denomination: true },
     orderBy: { updatedAt: 'desc' },
   })
 }
@@ -18,6 +19,7 @@ export async function addRubroTransport(params: {
   unit: string
   quantity: number
   unitCost: number
+  denominationId?: string
   notes?: string
 }): Promise<RubroTransport> {
   const unitCostSnapshot = params.unitCost
@@ -34,6 +36,7 @@ export async function addRubroTransport(params: {
         quantity: params.quantity,
         unitCost: unitCostSnapshot,
         totalCost,
+        denominationId: params.denominationId || undefined,
         notes: params.notes?.trim() || undefined,
       },
     })
@@ -52,6 +55,7 @@ export async function updateRubroTransport(params: {
   unit: string
   quantity: number
   unitCost: number
+  denominationId?: string
   notes?: string
 }): Promise<RubroTransport> {
   const totalCost = calculateTransportCost(params.quantity, params.unitCost)
@@ -66,6 +70,7 @@ export async function updateRubroTransport(params: {
         quantity: params.quantity,
         unitCost: params.unitCost,
         totalCost,
+        denominationId: params.denominationId || null,
         notes: params.notes?.trim() || undefined,
       },
     })

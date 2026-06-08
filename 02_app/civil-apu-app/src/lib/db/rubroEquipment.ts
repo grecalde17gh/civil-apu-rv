@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import type { EquipmentItem, RubroEquipment } from '@prisma/client'
 import { calculateEquipmentCost } from '@/src/lib/calculations/equipment'
+import { resolveRubroTimeRequired } from '@/src/lib/calculations/rubroPerformance'
 import { updateRubroTotals } from './rubros'
 
 export type RubroEquipmentWithItem = RubroEquipment & {
@@ -34,11 +35,19 @@ export async function addRubroEquipment(params: {
     throw new Error('El equipo seleccionado no tiene tarifa horaria vigente')
   }
 
+  const rubro = await prisma.rubro.findUnique({
+    where: { id: params.rubroId },
+    select: { performanceValue: true },
+  })
   const rateSnapshot = Number(equipmentItem.hourlyRate.toString())
+  const timeRequired = resolveRubroTimeRequired({
+    rubroPerformanceValue: rubro?.performanceValue ? Number(rubro.performanceValue.toString()) : null,
+    lineTimeRequired: params.timeRequired,
+  })
   const totalCost = calculateEquipmentCost({
     equipmentQuantity: params.equipmentQuantity,
     rate: rateSnapshot,
-    timeRequired: params.timeRequired,
+    timeRequired,
     performanceMode: 'MANUAL_TIME',
     rateType: 'HOURLY',
   })
@@ -51,7 +60,7 @@ export async function addRubroEquipment(params: {
         equipmentQuantity: params.equipmentQuantity,
         rateType: 'HOURLY',
         rateSnapshot,
-        timeRequired: params.timeRequired,
+        timeRequired,
         performanceMode: 'MANUAL_TIME',
         totalCost,
         notes: params.notes?.trim() || undefined,
@@ -69,13 +78,34 @@ export async function updateRubroEquipment(params: {
   rubroId: string
   equipmentQuantity: number
   timeRequired: number
-  rateSnapshot: number
   notes?: string
 }): Promise<RubroEquipment> {
+  const existing = await prisma.rubroEquipment.findUnique({
+    where: { id: params.id },
+    include: { equipmentItem: true },
+  })
+
+  if (!existing) {
+    throw new Error('Linea de equipo no encontrada')
+  }
+
+  if (existing.equipmentItem.hourlyRate === null) {
+    throw new Error('El equipo seleccionado no tiene tarifa horaria vigente')
+  }
+
+  const rateSnapshot = Number(existing.equipmentItem.hourlyRate.toString())
+  const rubro = await prisma.rubro.findUnique({
+    where: { id: params.rubroId },
+    select: { performanceValue: true },
+  })
+  const timeRequired = resolveRubroTimeRequired({
+    rubroPerformanceValue: rubro?.performanceValue ? Number(rubro.performanceValue.toString()) : null,
+    lineTimeRequired: params.timeRequired,
+  })
   const totalCost = calculateEquipmentCost({
     equipmentQuantity: params.equipmentQuantity,
-    rate: params.rateSnapshot,
-    timeRequired: params.timeRequired,
+    rate: rateSnapshot,
+    timeRequired,
     performanceMode: 'MANUAL_TIME',
     rateType: 'HOURLY',
   })
@@ -85,8 +115,8 @@ export async function updateRubroEquipment(params: {
       where: { id: params.id },
       data: {
         equipmentQuantity: params.equipmentQuantity,
-        rateSnapshot: params.rateSnapshot,
-        timeRequired: params.timeRequired,
+        rateSnapshot,
+        timeRequired,
         totalCost,
         notes: params.notes?.trim() || undefined,
       },

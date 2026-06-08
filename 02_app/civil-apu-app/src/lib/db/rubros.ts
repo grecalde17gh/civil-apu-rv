@@ -2,6 +2,9 @@ import { prisma } from './prisma'
 import type { Prisma, Rubro } from '@prisma/client'
 import type { RubroFormInput } from '@/src/lib/validations/rubro'
 import { calculateDirectCost, calculateIndirectCost, calculateUnitPrice } from '@/src/lib/calculations/apu'
+import { calculateEquipmentCost } from '@/src/lib/calculations/equipment'
+import { calculateLaborCost } from '@/src/lib/calculations/labor'
+import { resolveRubroTimeRequired } from '@/src/lib/calculations/rubroPerformance'
 import { generateNextCatalogCode } from '../catalogCodes'
 import { buildCopyName, generateCopyCode } from './copy'
 import { assertRubroCanUseState } from '@/src/lib/validations/rubroCompletion'
@@ -34,6 +37,7 @@ export async function createRubro(data: RubroFormInput): Promise<Rubro> {
       performanceValue: data.performanceValue ?? undefined,
       performanceUnit: data.performanceUnit ?? undefined,
       indirectPercentage: data.indirectPercentage,
+      technicalSpecification: data.technicalSpecification ?? undefined,
       notes: data.notes ?? undefined,
       status: data.status,
       calculationStatus: data.calculationStatus,
@@ -57,23 +61,27 @@ export async function updateRubro(id: string, data: RubroFormInput): Promise<Rub
     directCost: existing.directCost,
   })
 
-  await prisma.rubro.update({
-    where: { id },
-    data: {
-      code: data.code,
-      description: data.description,
-      unit: data.unit,
-      category: data.category ?? undefined,
-      performanceValue: data.performanceValue ?? undefined,
-      performanceUnit: data.performanceUnit ?? undefined,
-      indirectPercentage: data.indirectPercentage,
-      notes: data.notes ?? undefined,
-      status: data.status,
-      calculationStatus: data.calculationStatus,
-    },
-  })
+  await prisma.$transaction(async (tx) => {
+    await tx.rubro.update({
+      where: { id },
+      data: {
+        code: data.code,
+        description: data.description,
+        unit: data.unit,
+        category: data.category ?? undefined,
+        performanceValue: data.performanceValue ?? undefined,
+        performanceUnit: data.performanceUnit ?? undefined,
+        indirectPercentage: data.indirectPercentage,
+        technicalSpecification: data.technicalSpecification ?? undefined,
+        notes: data.notes ?? undefined,
+        status: data.status,
+        calculationStatus: data.calculationStatus,
+      },
+    })
 
-  await updateRubroTotals(id)
+    await recalculateLaborAndEquipmentForRubro(id, data.performanceValue ?? null, tx)
+    await updateRubroTotals(id, tx)
+  })
 
   const updated = await getRubroById(id)
   if (!updated) {
@@ -124,6 +132,7 @@ export async function copyRubro(id: string): Promise<Rubro> {
         performanceValue: rubro.performanceValue,
         performanceUnit: rubro.performanceUnit,
         indirectPercentage: rubro.indirectPercentage,
+        technicalSpecification: rubro.technicalSpecification,
         directCost: rubro.directCost,
         indirectCost: rubro.indirectCost,
         unitPrice: rubro.unitPrice,
@@ -136,6 +145,7 @@ export async function copyRubro(id: string): Promise<Rubro> {
             materialId: line.materialId,
             quantity: line.quantity,
             unit: line.unit,
+            priceOption: line.priceOption,
             unitCostSnapshot: line.unitCostSnapshot,
             totalCost: line.totalCost,
             notes: line.notes,
@@ -174,6 +184,7 @@ export async function copyRubro(id: string): Promise<Rubro> {
             quantity: line.quantity,
             unitCost: line.unitCost,
             totalCost: line.totalCost,
+            denominationId: line.denominationId,
             notes: line.notes,
           })),
         },
@@ -266,4 +277,73 @@ export async function updateRubroTotals(rubroId: string, tx: Prisma.TransactionC
       unitPrice,
     },
   })
+}
+
+async function recalculateLaborAndEquipmentForRubro(
+  rubroId: string,
+  rubroPerformanceValue: number | null,
+  tx: Prisma.TransactionClient,
+): Promise<void> {
+  if (!(typeof rubroPerformanceValue === 'number' && Number.isFinite(rubroPerformanceValue) && rubroPerformanceValue > 0)) {
+    return
+  }
+
+  const laborLines = await tx.rubroLabor.findMany({
+    where: { rubroId },
+    include: { laborItem: true },
+  })
+
+  for (const line of laborLines) {
+    const workerQuantity = Number(line.workerQuantity.toString())
+    const hourlyCostSnapshot = Number(line.laborItem.hourlyCost.toString())
+    const timeRequired = resolveRubroTimeRequired({
+      rubroPerformanceValue,
+      lineTimeRequired: line.timeRequired ? Number(line.timeRequired.toString()) : null,
+    })
+    const totalCost = calculateLaborCost({
+      workerQuantity,
+      hourlyCost: hourlyCostSnapshot,
+      timeRequired,
+      performanceMode: 'MANUAL_TIME',
+    })
+
+    await tx.rubroLabor.update({
+      where: { id: line.id },
+      data: {
+        hourlyCostSnapshot,
+        timeRequired,
+        totalCost,
+      },
+    })
+  }
+
+  const equipmentLines = await tx.rubroEquipment.findMany({
+    where: { rubroId },
+    include: { equipmentItem: true },
+  })
+
+  for (const line of equipmentLines) {
+    const equipmentQuantity = Number(line.equipmentQuantity.toString())
+    const rateSnapshot = line.equipmentItem.hourlyRate ? Number(line.equipmentItem.hourlyRate.toString()) : Number(line.rateSnapshot.toString())
+    const timeRequired = resolveRubroTimeRequired({
+      rubroPerformanceValue,
+      lineTimeRequired: line.timeRequired ? Number(line.timeRequired.toString()) : null,
+    })
+    const totalCost = calculateEquipmentCost({
+      equipmentQuantity,
+      rate: rateSnapshot,
+      timeRequired,
+      performanceMode: 'MANUAL_TIME',
+      rateType: 'HOURLY',
+    })
+
+    await tx.rubroEquipment.update({
+      where: { id: line.id },
+      data: {
+        rateSnapshot,
+        timeRequired,
+        totalCost,
+      },
+    })
+  }
 }

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import LaborForm from '@/src/components/labor/LaborForm'
 import { getLaborById } from '@/src/lib/db/labor'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 import { updateLaborAction } from '../../actions'
 
 type LaborPageProps = {
@@ -14,6 +15,7 @@ export default async function EditLaborPage({ params }: LaborPageProps) {
   const { id } = await params
 
   const item = await getLaborById(id)
+  const denominations = await getIpcoDenominations()
 
   if (!item) {
     notFound()
@@ -27,6 +29,7 @@ export default async function EditLaborPage({ params }: LaborPageProps) {
     cpc: item.cpc ?? undefined,
     vae: item.vae !== null && item.vae !== undefined ? Number(item.vae.toString()) : undefined,
     category: item.category ?? undefined,
+    denominationId: item.denominationId ?? undefined,
     priceDate: item.priceDate ?? undefined,
     isActive: item.isActive,
   }
@@ -47,7 +50,7 @@ export default async function EditLaborPage({ params }: LaborPageProps) {
           </Link>
         </div>
 
-        <LaborForm action={updateLaborAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} />
+        <LaborForm action={updateLaborAction} submitLabel="Guardar cambios" initialData={initialData} hiddenId={id} denominations={denominations} />
       </div>
     </div>
   )

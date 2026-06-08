@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import MaterialForm from '@/src/components/materials/MaterialForm'
 import { getMaterialById } from '@/src/lib/db/materials'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 import { updateMaterialAction } from '../../actions'
 
 type MaterialPageProps = {
@@ -16,6 +17,7 @@ export default async function EditMaterialPage({ params }: MaterialPageProps) {
   const { id } = await params
 
   const material = await getMaterialById(id)
+  const denominations = await getIpcoDenominations()
 
   if (!material) {
     notFound()
@@ -25,12 +27,15 @@ export default async function EditMaterialPage({ params }: MaterialPageProps) {
     code: material.code ?? undefined,
     description: material.description,
     unit: material.unit,
-    unitCost: Number(material.unitCost.toString()),
+    price1: Number(material.price1.toString()),
+    price2: material.price2 === null ? undefined : Number(material.price2.toString()),
+    price3: material.price3 === null ? undefined : Number(material.price3.toString()),
     cpc: material.cpc ?? undefined,
     vae:
       material.vae !== null && material.vae !== undefined
         ? Number(material.vae.toString())
         : undefined,
+    denominationId: material.denominationId ?? undefined,
     usesCategory1: material.usesCategory1,
     usesCategory2: material.usesCategory2,
     priceDate: material.priceDate ?? undefined,
@@ -58,6 +63,7 @@ export default async function EditMaterialPage({ params }: MaterialPageProps) {
           submitLabel="Guardar cambios"
           initialData={initialData}
           hiddenId={id}
+          denominations={denominations}
         />
       </div>
     </div>

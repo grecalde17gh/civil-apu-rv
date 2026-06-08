@@ -98,14 +98,12 @@ export default function RubroForm({
         </div>
 
         <div className="grid gap-px border-t border-slate-200 bg-slate-200 md:grid-cols-[160px_160px_160px_minmax(240px,1fr)_130px]">
-          <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Categoria
-            <input
-              name="category"
-              defaultValue={initialData?.category ?? ''}
-              className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm text-slate-950"
-            />
-          </label>
+          <div className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            VAE
+            <p className="mt-1 flex h-8 items-center rounded border border-slate-200 bg-white px-2 text-sm font-normal normal-case tracking-normal text-slate-500">
+              Pendiente
+            </p>
+          </div>
 
           <label className="bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Estado
@@ -158,6 +156,16 @@ export default function RubroForm({
           </div>
         </div>
 
+        <label className="block border-t border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Especificacion tecnica
+          <textarea
+            name="technicalSpecification"
+            defaultValue={initialData?.technicalSpecification ?? ''}
+            rows={4}
+            className="mt-1 w-full rounded border border-slate-300 px-2 py-2 text-sm font-normal normal-case tracking-normal text-slate-950"
+          />
+        </label>
+
         {hiddenId ? <input type="hidden" name="id" value={hiddenId} /> : null}
         {hiddenBudgetId ? <input type="hidden" name="budgetId" value={hiddenBudgetId} /> : null}
         {hiddenProjectId ? <input type="hidden" name="projectId" value={hiddenProjectId} /> : null}
@@ -200,14 +208,12 @@ export default function RubroForm({
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Categoría
-          <input
-            name="category"
-            defaultValue={initialData?.category ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
+        <div className="space-y-2 text-sm font-medium text-zinc-700">
+          VAE
+          <p className="flex h-10 items-center rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-normal text-zinc-500">
+            Pendiente
+          </p>
+        </div>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
           Rendimiento
@@ -248,6 +254,16 @@ export default function RubroForm({
           name="notes"
           defaultValue={initialData?.notes ?? ''}
           rows={4}
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+        />
+      </label>
+
+      <label className="space-y-2 text-sm font-medium text-zinc-700">
+        Especificacion tecnica
+        <textarea
+          name="technicalSpecification"
+          defaultValue={initialData?.technicalSpecification ?? ''}
+          rows={6}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
         />
       </label>

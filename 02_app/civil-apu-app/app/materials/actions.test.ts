@@ -32,7 +32,9 @@ const validMaterialPayload = {
   code: 'MAT-001',
   description: 'Cemento',
   unit: 'kg',
-  unitCost: 1.25,
+  price1: 1.25,
+  price2: undefined,
+  price3: undefined,
   cpc: '',
   vae: undefined,
   usesCategory1: false,
@@ -64,7 +66,7 @@ describe('copyMaterialAction', () => {
     formData.set('code', 'MAT-001')
     formData.set('description', 'Cemento')
     formData.set('unit', 'kg')
-    formData.set('unitCost', '1.25')
+    formData.set('price1', '1.25')
     formData.set('isActive', 'on')
 
     await expect(createMaterialAction(formData)).rejects.toThrow('REDIRECT:/materials')
@@ -79,17 +81,13 @@ describe('copyMaterialAction', () => {
     expect(mocks.createMaterial).toHaveBeenCalledWith(validMaterialPayload)
   })
 
-  it('creates a material participating in both formula categories', async () => {
-    mocks.validateMaterialInput.mockReturnValue({
-      ...validMaterialPayload,
-      usesCategory1: true,
-      usesCategory2: true,
-    })
+  it('ignores obsolete formula category flags when creating a material', async () => {
+    mocks.validateMaterialInput.mockReturnValue(validMaterialPayload)
 
     const formData = new FormData()
     formData.set('description', 'Acero')
     formData.set('unit', 'kg')
-    formData.set('unitCost', '2.5')
+    formData.set('price1', '2.5')
     formData.set('usesCategory1', 'on')
     formData.set('usesCategory2', 'on')
 
@@ -97,38 +95,34 @@ describe('copyMaterialAction', () => {
 
     expect(mocks.validateMaterialInput).toHaveBeenCalledWith(
       expect.objectContaining({
-        usesCategory1: true,
-        usesCategory2: true,
+        usesCategory1: false,
+        usesCategory2: false,
         isActive: false,
       }),
     )
     expect(mocks.createMaterial).toHaveBeenCalledWith(
       expect.objectContaining({
-        usesCategory1: true,
-        usesCategory2: true,
+        usesCategory1: false,
+        usesCategory2: false,
       }),
     )
   })
 
-  it('updates a material preserving category 1 only', async () => {
-    mocks.validateMaterialInput.mockReturnValue({
-      ...validMaterialPayload,
-      usesCategory1: true,
-      usesCategory2: false,
-    })
+  it('ignores obsolete formula category 1 flag when updating a material', async () => {
+    mocks.validateMaterialInput.mockReturnValue(validMaterialPayload)
 
     const formData = new FormData()
     formData.set('id', 'material-1')
     formData.set('description', 'Cemento gris')
     formData.set('unit', 'kg')
-    formData.set('unitCost', '1.4')
+    formData.set('price1', '1.4')
     formData.set('usesCategory1', 'on')
 
     await expect(updateMaterialAction(formData)).rejects.toThrow('REDIRECT:/materials')
 
     expect(mocks.validateMaterialInput).toHaveBeenCalledWith(
       expect.objectContaining({
-        usesCategory1: true,
+        usesCategory1: false,
         usesCategory2: false,
         isActive: false,
       }),
@@ -136,24 +130,20 @@ describe('copyMaterialAction', () => {
     expect(mocks.updateMaterial).toHaveBeenCalledWith(
       'material-1',
       expect.objectContaining({
-        usesCategory1: true,
+        usesCategory1: false,
         usesCategory2: false,
       }),
     )
   })
 
-  it('updates a material preserving category 2 only', async () => {
-    mocks.validateMaterialInput.mockReturnValue({
-      ...validMaterialPayload,
-      usesCategory1: false,
-      usesCategory2: true,
-    })
+  it('ignores obsolete formula category 2 flag when updating a material', async () => {
+    mocks.validateMaterialInput.mockReturnValue(validMaterialPayload)
 
     const formData = new FormData()
     formData.set('id', 'material-2')
     formData.set('description', 'Arena')
     formData.set('unit', 'm3')
-    formData.set('unitCost', '12')
+    formData.set('price1', '12')
     formData.set('usesCategory2', 'on')
 
     await expect(updateMaterialAction(formData)).rejects.toThrow('REDIRECT:/materials')
@@ -161,14 +151,14 @@ describe('copyMaterialAction', () => {
     expect(mocks.validateMaterialInput).toHaveBeenCalledWith(
       expect.objectContaining({
         usesCategory1: false,
-        usesCategory2: true,
+        usesCategory2: false,
       }),
     )
     expect(mocks.updateMaterial).toHaveBeenCalledWith(
       'material-2',
       expect.objectContaining({
         usesCategory1: false,
-        usesCategory2: true,
+        usesCategory2: false,
       }),
     )
   })

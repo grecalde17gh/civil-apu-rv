@@ -1,13 +1,22 @@
 import type { LaborFormInput } from '@/src/lib/validations/labor'
+import type { IpcoDenomination } from '@prisma/client'
+import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
 
 type LaborFormProps = {
   action: (formData: FormData) => Promise<void>
   initialData?: Partial<LaborFormInput>
+  denominations?: IpcoDenomination[]
   submitLabel: string
   hiddenId?: string
 }
 
-export default function LaborForm({ action, initialData, submitLabel, hiddenId }: LaborFormProps) {
+export default function LaborForm({ action, initialData, denominations = [], submitLabel, hiddenId }: LaborFormProps) {
+  const denominationOptions = denominations.map((denomination) => ({
+    id: denomination.id,
+    label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
+    searchText: [denomination.code, denomination.name].filter(Boolean).join(' '),
+  }))
+
   return (
     <form action={action} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -64,6 +73,11 @@ export default function LaborForm({ action, initialData, submitLabel, hiddenId }
         </label>
       </div>
 
+      <label className="space-y-2 text-sm font-medium text-zinc-700">
+        Denominacion IPCO
+        <DenominationCombobox options={denominationOptions} initialId={initialData?.denominationId ?? ''} />
+      </label>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
           VAE
@@ -75,14 +89,6 @@ export default function LaborForm({ action, initialData, submitLabel, hiddenId }
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Categoría
-          <input
-            name="category"
-            defaultValue={initialData?.category ?? ''}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </label>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
