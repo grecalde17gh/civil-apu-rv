@@ -1,0 +1,30 @@
+Revisamos con Franklin algunos ajustes y funcionalidades, entre ellas las siguientes:
+
+
+* En la edición de rubros para materiales, Mano de obra, equipos no debe cambiarse el costo porque no puede haber diferencias con la base de datos original, necesitamos que solo se editen las cantidades. 
+ok
+
+* Los Materiales pueden tener 3 opciones de precio en la base principal, y en el momento de editar el rubro escoger la tabla de precio que apicara.
+ok
+
+* El rendimiento de Mano de obra y equipo debería ser asignado de acuerdo al rendimiento que se asigna al rubro, es decir, la mano de obra y equipos iniciales debe ir con rendimiento vacío para que se asigna al monto que son asignado en el rubro correspondiente.
+ok
+
+* Cada rubro debería tener una especificación técnica de texto como parte de los datos del rubro. con la finalidad de que vaya en la información del presupuesto al que se añade el rubro. también incluir las opciónes de importar que hemos estado manejando. 
+ok
+
+* Para materiales, Mano de obra y equipo la categoría debe ser un desplegable con búsqueda facil con opciones de selección de la Tabla denominaciones_IPCO que la cargue en la carpeta de + otras denomincacion es qu las extraeremos de una tabla de índice de precios al consumidor. esa tabla debe seria cargada cada año con la opción de actualizarla mediante importación o sincronización
+ok
+
+
+* En el preupuesto una vez agregado el rubro debería poder editarse la cantidad del rubro para poder ir manipulándolo a necesidad.
+
+* El concepto de categoría aparece que fue confuso y hay que aclararlo y corregirlo
+Cada Material, mano de obra, equipo y transporte debe tener solo una categoría.
+La categoría debe ser elegida de la tabla denominaciones, es decir, categoría=denominación (aquí estuvo la confusión).
+En los rubros, aparece categoría, pero eso no debería ser, con la explicación anterior categoría solo aplica a materiales, mano de obra equipos y transporte. En lugar de ese campo mas bien debería aparecer el VAE, por el monto en blanco pero cuando ya se calcule debería aprecer en ese panel.
+
+* En el panel de presupuesto, que no aparezca visualmente el campo especificación y mas bien ahí que vaya el vae de cada rubro
+
+
+
