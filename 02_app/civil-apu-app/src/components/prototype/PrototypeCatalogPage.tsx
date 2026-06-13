@@ -1,3 +1,5 @@
+'use client'
+
 import PrototypeDataGrid, { PrototypeCellInput, type PrototypeColumn } from './PrototypeDataGrid'
 import PrototypeInsertModal from './PrototypeInsertModal'
 import PrototypeShell from './PrototypeShell'
@@ -20,7 +22,6 @@ export default function PrototypeCatalogPage({ title, subtitle, insertLabel, ins
   const averagePrice = rows.reduce((total, row) => total + row.unitPrice, 0) / rows.length
 
   const columns: PrototypeColumn<PrototypeCatalogItem>[] = [
-    { key: 'line', header: '#', width: '56px', align: 'center', render: (_row, index) => index + 1 },
     { key: 'code', header: 'Codigo', width: '120px', render: (row) => <PrototypeCellInput value={row.code} /> },
     { key: 'description', header: 'Descripcion', render: (row) => <PrototypeCellInput value={row.description} /> },
     { key: 'unit', header: 'Unidad', width: '90px', render: (row) => <PrototypeCellInput value={row.unit} /> },
@@ -64,28 +65,26 @@ export default function PrototypeCatalogPage({ title, subtitle, insertLabel, ins
           <PrototypeSummaryItem label="Precio promedio" value={formatMoney(averagePrice)} />
         </PrototypeSummaryBar>
 
-        <section className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="border border-slate-400 bg-white">
-            <div className="border-b border-slate-300 bg-slate-800 px-3 py-2 text-xs font-semibold uppercase text-white">Filtros</div>
-            <div className="space-y-3 p-3">
-              <label className="text-[11px] font-semibold uppercase text-slate-500">
-                Buscar
-                <input className="mt-1 h-8 w-full border border-slate-300 px-2 text-xs" defaultValue="" placeholder="Codigo o descripcion" />
-              </label>
-              <label className="text-[11px] font-semibold uppercase text-slate-500">
-                Estado
-                <select className="mt-1 h-8 w-full border border-slate-300 px-2 text-xs" defaultValue="Todos">
-                  <option>Todos</option>
-                  <option>Activo</option>
-                  <option>Revision</option>
-                  <option>Inactivo</option>
-                </select>
-              </label>
-              <div className="border border-blue-200 bg-blue-50 p-2 text-xs text-blue-950">
-                Cambios simulados en pantalla. Esta vista no guarda en base de datos.
-              </div>
+        <section className="space-y-2">
+          <div className="grid gap-px border border-[#6f7f94] bg-[#9aa8ba] md:grid-cols-[minmax(220px,1fr)_180px_minmax(220px,1.2fr)]">
+            <label className="bg-[#f4f7fb] px-2 py-1 text-[11px] font-semibold uppercase text-slate-600 shadow-[inset_0_1px_0_white]">
+              Buscar en hoja
+              <input className="mt-1 h-6 w-full border border-[#8d9bad] px-2 text-xs font-normal normal-case shadow-[inset_1px_1px_1px_rgba(15,23,42,0.12)]" defaultValue="" placeholder="Codigo o descripcion" />
+            </label>
+            <label className="bg-[#f4f7fb] px-2 py-1 text-[11px] font-semibold uppercase text-slate-600 shadow-[inset_0_1px_0_white]">
+              Estado
+              <select className="mt-1 h-6 w-full border border-[#8d9bad] px-2 text-xs font-normal normal-case shadow-[inset_1px_1px_1px_rgba(15,23,42,0.12)]" defaultValue="Todos">
+                <option>Todos</option>
+                <option>Activo</option>
+                <option>Revision</option>
+                <option>Inactivo</option>
+              </select>
+            </label>
+            <div className="border-l border-[#8d9bad] bg-[#eef3fa] px-2 py-1 text-xs text-blue-950 shadow-[inset_0_1px_0_white]">
+              <p className="text-[11px] font-semibold uppercase text-blue-700">Modo prototipo</p>
+              <p>Cambios simulados en pantalla. Esta vista no guarda en base de datos.</p>
             </div>
-          </aside>
+          </div>
           <PrototypeDataGrid columns={columns} rows={rows} getRowKey={(row) => row.id} />
         </section>
       </div>

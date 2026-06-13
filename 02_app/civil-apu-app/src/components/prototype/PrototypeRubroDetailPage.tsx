@@ -1,3 +1,5 @@
+'use client'
+
 import PrototypeDataGrid, { PrototypeCellInput, type PrototypeColumn } from './PrototypeDataGrid'
 import PrototypeInsertModal from './PrototypeInsertModal'
 import PrototypeShell from './PrototypeShell'
@@ -43,7 +45,7 @@ export default function PrototypeRubroDetailPage({ id }: PrototypeRubroDetailPag
           <PrototypeSummaryItem label="Precio unitario" value={formatMoney(unitPrice)} />
         </PrototypeSummaryBar>
 
-        <section className="grid gap-px border border-slate-400 bg-slate-300 xl:grid-cols-4">
+        <section className="grid gap-px border border-[#6f7f94] bg-[#9aa8ba] xl:grid-cols-5">
           <HeaderField label="Codigo" value={rubro.code} />
           <HeaderField label="Descripcion" value={rubro.description} wide />
           <HeaderField label="Unidad" value={rubro.unit} />
@@ -60,9 +62,9 @@ export default function PrototypeRubroDetailPage({ id }: PrototypeRubroDetailPag
 
 function HeaderField({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
   return (
-    <label className={`bg-white px-3 py-2 text-[11px] font-semibold uppercase text-slate-500 ${wide ? 'xl:col-span-2' : ''}`}>
+    <label className={`bg-gradient-to-b from-[#f8fafc] to-[#e4ebf5] px-2 py-1 text-[11px] font-semibold uppercase text-slate-600 shadow-[inset_0_1px_0_white] ${wide ? 'xl:col-span-2' : ''}`}>
       {label}
-      <input defaultValue={value} className="mt-1 h-8 w-full border border-slate-300 px-2 text-xs font-normal normal-case text-slate-900" />
+      <input defaultValue={value} className="mt-1 h-6 w-full border border-[#8d9bad] px-2 text-xs font-normal normal-case text-slate-900 shadow-[inset_1px_1px_1px_rgba(15,23,42,0.12)]" />
     </label>
   )
 }
@@ -91,8 +93,8 @@ function ComponentSection({ title, rubro, rows }: { title: string; rubro: Protot
   ]
 
   return (
-    <section className="border border-slate-400 bg-white">
-      <div className="flex items-center justify-between border-b border-slate-300 bg-slate-800 px-3 py-2 text-white">
+    <section className="border border-[#6f7f94] bg-white shadow-[inset_0_1px_0_white]">
+      <div className="flex items-center justify-between border-b border-[#8d9bad] bg-gradient-to-b from-[#edf4fc] to-[#c9d8eb] px-2 py-1 text-slate-950">
         <p className="text-xs font-semibold uppercase">{title}</p>
         <p className="font-mono text-xs">{formatMoney(rows.reduce((total, row) => total + row.subtotal, 0))}</p>
       </div>

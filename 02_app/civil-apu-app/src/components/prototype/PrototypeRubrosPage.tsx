@@ -1,3 +1,5 @@
+'use client'
+
 import PrototypeDataGrid, { PrototypeCellInput, type PrototypeColumn } from './PrototypeDataGrid'
 import PrototypeInsertModal from './PrototypeInsertModal'
 import PrototypeShell from './PrototypeShell'
