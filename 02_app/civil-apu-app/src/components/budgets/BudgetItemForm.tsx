@@ -1,17 +1,40 @@
 'use client'
 
 import { useActionState } from 'react'
-import type { Rubro } from '@prisma/client'
 import type { BudgetItemActionState } from '@/app/projects/[projectId]/budgets/actions'
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
 import { formatCatalogOption } from '@/src/lib/catalogSearch'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 
+export type BudgetItemFormRubro = {
+  id: string
+  code: string
+  description: string
+  unit: string
+  category: string | null
+  performanceValue: string | null
+  performanceUnit: string | null
+  indirectPercentage: string
+  directCost: string | null
+  indirectCost: string | null
+  unitPrice: string | null
+  status: string
+  calculationStatus: string
+  notes: string | null
+  technicalSpecification: string | null
+  sourceExcelSheet: string | null
+  createdById: string | null
+  validatedById: string | null
+  validatedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 type BudgetItemFormProps = {
   action: (state: BudgetItemActionState, formData: FormData) => Promise<BudgetItemActionState>
   budgetId: string
   projectId?: string
-  rubros: Rubro[]
+  rubros: BudgetItemFormRubro[]
   variant?: 'default' | 'catalog'
 }
 

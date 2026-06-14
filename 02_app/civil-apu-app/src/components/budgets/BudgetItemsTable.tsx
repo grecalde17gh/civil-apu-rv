@@ -1,17 +1,32 @@
-import type { BudgetItem } from '@prisma/client'
 import Link from 'next/link'
 import ExportVisibleTableButton from '@/src/components/export/ExportVisibleTableButton'
 
+export type BudgetItemsTableItem = {
+  id: string
+  rubroId: string
+  itemNumber: string | null
+  rubroCodeSnapshot: string
+  descriptionSnapshot: string
+  unitSnapshot: string
+  quantity: string
+  indirectPercentageApplied: string
+  directCostSnapshot: string
+  indirectCostSnapshot: string
+  unitPriceSnapshot: string
+  subtotalSnapshot: string
+  totalPrice: string
+}
+
 type BudgetItemsTableProps = {
-  items: BudgetItem[]
+  items: BudgetItemsTableItem[]
   budgetId: string
   projectId?: string
   deleteAction: (formData: FormData) => Promise<void>
   updateQuantityAction: (formData: FormData) => Promise<void>
 }
 
-function getItemSubtotal(item: BudgetItem) {
-  const subtotalSnapshot = Number(item.subtotalSnapshot.toString())
+function getItemSubtotal(item: BudgetItemsTableItem) {
+  const subtotalSnapshot = Number(item.subtotalSnapshot)
   return subtotalSnapshot > 0 ? item.subtotalSnapshot : item.totalPrice
 }
 
@@ -65,7 +80,7 @@ export default function BudgetItemsTable({ items, budgetId, projectId, deleteAct
                     {projectId ? <input type="hidden" name="projectId" value={projectId} /> : null}
                     <input
                       name="quantity"
-                      defaultValue={item.quantity.toString()}
+                      defaultValue={item.quantity}
                       required
                       inputMode="decimal"
                       className="h-7 w-24 rounded border border-slate-300 px-2 text-right font-mono text-xs tabular-nums text-slate-800"
@@ -75,10 +90,10 @@ export default function BudgetItemsTable({ items, budgetId, projectId, deleteAct
                     </button>
                   </form>
                 </td>
-                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.directCostSnapshot.toString()}</td>
-                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.indirectPercentageApplied.toString()}%</td>
-                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.unitPriceSnapshot.toString()}</td>
-                <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{getItemSubtotal(item).toString()}</td>
+                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.directCostSnapshot}</td>
+                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.indirectPercentageApplied}%</td>
+                <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.unitPriceSnapshot}</td>
+                <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{getItemSubtotal(item)}</td>
                 <td className="px-3 py-2 text-slate-700">
                   <div className="flex flex-wrap gap-2">
                     <Link

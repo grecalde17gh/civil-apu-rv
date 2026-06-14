@@ -5,8 +5,8 @@ import BudgetConsolidationTables from '@/src/components/budgets/BudgetConsolidat
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
 import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction } from '../../actions'
-import BudgetItemForm from '@/src/components/budgets/BudgetItemForm'
-import BudgetItemsTable from '@/src/components/budgets/BudgetItemsTable'
+import BudgetItemForm, { type BudgetItemFormRubro } from '@/src/components/budgets/BudgetItemForm'
+import BudgetItemsTable, { type BudgetItemsTableItem } from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +42,64 @@ function getConsolidationSection(tab: BudgetTab) {
   return 'transport'
 }
 
+type DecimalLike = { toString(): string } | null | undefined
+
+function serializeDecimal(value: DecimalLike): string | null {
+  return value === null || value === undefined ? null : value.toString()
+}
+
+function serializeRequiredDecimal(value: DecimalLike): string {
+  return serializeDecimal(value) ?? '0'
+}
+
+function serializeDate(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null
+}
+
+function serializeRubro(rubro: Awaited<ReturnType<typeof getRubros>>[number]): BudgetItemFormRubro {
+  return {
+    id: rubro.id,
+    code: rubro.code,
+    description: rubro.description,
+    unit: rubro.unit,
+    category: rubro.category,
+    performanceValue: serializeDecimal(rubro.performanceValue),
+    performanceUnit: rubro.performanceUnit,
+    indirectPercentage: serializeRequiredDecimal(rubro.indirectPercentage),
+    directCost: serializeDecimal(rubro.directCost),
+    indirectCost: serializeDecimal(rubro.indirectCost),
+    unitPrice: serializeDecimal(rubro.unitPrice),
+    status: rubro.status,
+    calculationStatus: rubro.calculationStatus,
+    notes: rubro.notes,
+    technicalSpecification: rubro.technicalSpecification,
+    sourceExcelSheet: rubro.sourceExcelSheet,
+    createdById: rubro.createdById,
+    validatedById: rubro.validatedById,
+    validatedAt: serializeDate(rubro.validatedAt),
+    createdAt: serializeDate(rubro.createdAt) ?? '',
+    updatedAt: serializeDate(rubro.updatedAt) ?? '',
+  }
+}
+
+function serializeBudgetItem(item: NonNullable<Awaited<ReturnType<typeof getBudgetByIdForEdit>>>['items'][number]): BudgetItemsTableItem {
+  return {
+    id: item.id,
+    rubroId: item.rubroId,
+    itemNumber: item.itemNumber,
+    rubroCodeSnapshot: item.rubroCodeSnapshot,
+    descriptionSnapshot: item.descriptionSnapshot,
+    unitSnapshot: item.unitSnapshot,
+    quantity: serializeRequiredDecimal(item.quantity),
+    indirectPercentageApplied: serializeRequiredDecimal(item.indirectPercentageApplied),
+    directCostSnapshot: serializeRequiredDecimal(item.directCostSnapshot),
+    indirectCostSnapshot: serializeRequiredDecimal(item.indirectCostSnapshot),
+    unitPriceSnapshot: serializeRequiredDecimal(item.unitPriceSnapshot),
+    subtotalSnapshot: serializeRequiredDecimal(item.subtotalSnapshot),
+    totalPrice: serializeRequiredDecimal(item.totalPrice),
+  }
+}
+
 export default async function EditBudgetPage({ params, searchParams }: EditBudgetPageProps) {
   const { projectId, budgetId } = await params
   const { tab } = (await searchParams) ?? {}
@@ -69,6 +127,8 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
   const ivaAmount = budget.ivaAmount?.toString() ?? '0.00'
   const total = budget.total?.toString() ?? budget.subtotal?.toString() ?? '0.00'
   const consolidation = consolidateBudgetComponents(budget)
+  const serializedRubros = rubros.map(serializeRubro)
+  const serializedBudgetItems = budget.items.map(serializeBudgetItem)
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -153,13 +213,13 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
               action={addBudgetItemFormAction}
               budgetId={budgetId}
               projectId={projectId}
-              rubros={rubros}
+              rubros={serializedRubros}
               variant="catalog"
             />
 
             <main className="min-w-0">
               <BudgetItemsTable
-                items={budget.items}
+                items={serializedBudgetItems}
                 budgetId={budgetId}
                 projectId={projectId}
                 deleteAction={deleteBudgetItemAction}
