@@ -52,7 +52,9 @@ export async function updateRubroAction(formData: FormData) {
   const parsed = validateRubroInput(data)
 
   await updateRubro(id, parsed)
-  redirect('/rubros')
+  const budgetId = formData.get('budgetId')
+  const budgetQuery = typeof budgetId === 'string' && budgetId.trim() !== '' ? `?budgetId=${budgetId}` : ''
+  redirect(`/rubros/${id}/edit${budgetQuery}`)
 }
 
 export async function copyRubroAction(formData: FormData) {

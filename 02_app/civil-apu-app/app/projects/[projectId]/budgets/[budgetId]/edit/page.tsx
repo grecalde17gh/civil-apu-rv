@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BudgetForm from '@/src/components/budgets/BudgetForm'
-import BudgetConsolidationTables from '@/src/components/budgets/BudgetConsolidationTables'
+import BudgetConsolidationTables, { GeneralComponentsTable } from '@/src/components/budgets/BudgetConsolidationTables'
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
 import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction } from '../../actions'
@@ -18,6 +18,7 @@ type EditBudgetPageProps = {
   }>
   searchParams?: Promise<{
     tab?: string
+    denomination?: string
   }>
 }
 
@@ -102,7 +103,7 @@ function serializeBudgetItem(item: NonNullable<Awaited<ReturnType<typeof getBudg
 
 export default async function EditBudgetPage({ params, searchParams }: EditBudgetPageProps) {
   const { projectId, budgetId } = await params
-  const { tab } = (await searchParams) ?? {}
+  const { tab, denomination } = (await searchParams) ?? {}
   const activeTab = getActiveTab(tab)
   const budget = await getBudgetByIdForEdit(budgetId)
   const rubros = await getRubros()
@@ -176,6 +177,12 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
                 href={`/projects/${projectId}/budgets`}
                 className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
               >
+                Ver lista
+              </Link>
+              <Link
+                href="/projects"
+                className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
+              >
                 Volver
               </Link>
             </div>
@@ -208,58 +215,62 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
         </nav>
 
         {activeTab === 'presupuesto' ? (
-          <div className="mt-4 grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)_300px]">
-            <BudgetItemForm
-              action={addBudgetItemFormAction}
-              budgetId={budgetId}
-              projectId={projectId}
-              rubros={serializedRubros}
-              variant="catalog"
-            />
-
-            <main className="min-w-0">
-              <BudgetItemsTable
-                items={serializedBudgetItems}
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)_300px]">
+              <BudgetItemForm
+                action={addBudgetItemFormAction}
                 budgetId={budgetId}
                 projectId={projectId}
-                deleteAction={deleteBudgetItemAction}
-                updateQuantityAction={updateBudgetItemQuantityAction}
+                rubros={serializedRubros}
+                variant="catalog"
               />
-            </main>
 
-            <aside className="sticky top-4 self-start overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
-              <div className="border-b border-slate-300 bg-slate-800 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-white">Totales</p>
-              </div>
-              <div className="divide-y divide-slate-200 text-sm">
-                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                  <span className="text-slate-600">Costo directo</span>
-                  <span className="font-mono font-semibold tabular-nums text-slate-950">{subtotal}</span>
+              <main className="min-w-0">
+                <BudgetItemsTable
+                  items={serializedBudgetItems}
+                  budgetId={budgetId}
+                  projectId={projectId}
+                  deleteAction={deleteBudgetItemAction}
+                  updateQuantityAction={updateBudgetItemQuantityAction}
+                />
+              </main>
+
+              <aside className="sticky top-4 self-start overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
+                <div className="border-b border-slate-300 bg-slate-800 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white">Totales</p>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                  <span className="text-slate-600">Costos indirectos</span>
-                  <span className="font-mono font-semibold tabular-nums text-slate-950">
-                    {budget.indirectPercentage?.toString() ?? '0'}%
-                  </span>
+                <div className="divide-y divide-slate-200 text-sm">
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Costo directo</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{subtotal}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Costos indirectos</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">
+                      {budget.indirectPercentage?.toString() ?? '0'}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">IVA ({budget.ivaPercentage?.toString() ?? '0'}%)</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{ivaAmount}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 bg-blue-50 px-3 py-3">
+                    <span className="font-bold text-blue-950">Total presupuesto</span>
+                    <span className="font-mono text-lg font-bold tabular-nums text-blue-950">{total}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Rubros</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{budget.items.length}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Capitulos</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">No configurado</span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                  <span className="text-slate-600">IVA ({budget.ivaPercentage?.toString() ?? '0'}%)</span>
-                  <span className="font-mono font-semibold tabular-nums text-slate-950">{ivaAmount}</span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] gap-3 bg-blue-50 px-3 py-3">
-                  <span className="font-bold text-blue-950">Total presupuesto</span>
-                  <span className="font-mono text-lg font-bold tabular-nums text-blue-950">{total}</span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                  <span className="text-slate-600">Rubros</span>
-                  <span className="font-mono font-semibold tabular-nums text-slate-950">{budget.items.length}</span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                  <span className="text-slate-600">Capitulos</span>
-                  <span className="font-mono font-semibold tabular-nums text-slate-950">No configurado</span>
-                </div>
-              </div>
-            </aside>
+              </aside>
+            </div>
+
+            <GeneralComponentsTable consolidation={consolidation} denominationFilter={denomination ?? ''} />
           </div>
         ) : (
           <div className="mt-4">

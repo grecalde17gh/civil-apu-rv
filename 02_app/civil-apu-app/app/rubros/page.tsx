@@ -181,9 +181,10 @@ export default async function RubrosPage() {
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo directo</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Indirectos ref.</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
@@ -195,7 +196,7 @@ export default async function RubrosPage() {
                 <tbody className="divide-y divide-slate-200">
                   {rubros.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={11} className="px-3 py-10 text-center text-sm text-slate-500">
                         No hay rubros registrados.
                       </td>
                     </tr>
@@ -206,6 +207,7 @@ export default async function RubrosPage() {
                         <td className="px-3 py-2 text-slate-800">{rubro.description}</td>
                         <td className="px-3 py-2 text-slate-700">{rubro.unit}</td>
                         <td className="px-3 py-2 text-slate-700">Pendiente</td>
+                        <td className="px-3 py-2 text-slate-700"></td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{getMoneyValue(rubro.directCost)}</td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">
                           {rubro.indirectPercentage.toString()}%

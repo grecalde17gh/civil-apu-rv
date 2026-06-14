@@ -30,6 +30,10 @@ function EmptyConsolidationMessage() {
   )
 }
 
+function matchesDenomination(value: string, filter: string) {
+  return value.toLowerCase().includes(filter.trim().toLowerCase())
+}
+
 function TableFrame({ title, tableId, fileName, children }: { title: string; tableId: string; fileName: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
@@ -53,11 +57,12 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
             <thead className="bg-slate-100">
               <tr>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo unitario</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -69,6 +74,7 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.totalQuantity)}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.unitCost)}</td>
                   <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatNumber(row.totalCost)}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.denomination}</td>
                 </tr>
               ))}
               <tr className="bg-blue-50">
@@ -76,7 +82,7 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
                   Total materiales
                 </td>
                 <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(total)}</td>
-                <td colSpan={2} />
+                <td />
               </tr>
             </tbody>
           </table>
@@ -107,11 +113,12 @@ function ResourceTable({
             <thead className="bg-slate-100">
               <tr>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -123,6 +130,7 @@ function ResourceTable({
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.totalQuantity)}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.unitCost)}</td>
                   <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatNumber(row.totalCost)}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.denomination}</td>
                 </tr>
               ))}
               <tr className="bg-blue-50">
@@ -130,6 +138,7 @@ function ResourceTable({
                   {totalLabel}
                 </td>
                 <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(total)}</td>
+                <td />
               </tr>
             </tbody>
           </table>
@@ -142,24 +151,29 @@ function ResourceTable({
 function TransportTable({ rows, total }: { rows: ConsolidatedTransport[]; total: number }) {
   return (
     <TableFrame title="Transporte consolidado" tableId="consolidated-transport-table" fileName="transporte-consolidado">
-      {rows.length === 0 ? (
-        <EmptyConsolidationMessage />
-      ) : (
-        <div className="overflow-x-auto">
-          <table id="consolidated-transport-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
-            <thead className="bg-slate-100">
+      <div className="overflow-x-auto">
+        <table id="consolidated-transport-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
+          <thead className="bg-slate-100">
+            <tr>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
+              <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Distancia</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {rows.length === 0 ? (
               <tr>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Distancia</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+                <td colSpan={8} className="px-3 py-10 text-center text-sm text-slate-500">
+                  No existen componentes para consolidar en este presupuesto.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {rows.map((row) => (
+            ) : (
+              rows.map((row) => (
                 <tr key={row.key} className="hover:bg-blue-50/60">
                   <td className="px-3 py-2 font-mono text-slate-700">{row.code}</td>
                   <td className="px-3 py-2 text-slate-800">{row.description}</td>
@@ -168,14 +182,114 @@ function TransportTable({ rows, total }: { rows: ConsolidatedTransport[]; total:
                   <td className="px-3 py-2 text-slate-700">{row.distance}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.unitCost)}</td>
                   <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatNumber(row.totalCost)}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.denomination}</td>
+                </tr>
+              ))
+            )}
+            <tr className="bg-blue-50">
+              <td colSpan={6} className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-blue-950">
+                Total transporte
+              </td>
+              <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(total)}</td>
+              <td />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </TableFrame>
+  )
+}
+
+type GeneralComponentRow = {
+  key: string
+  type: string
+  code: string
+  description: string
+  unit: string
+  totalQuantity: number
+  unitCost: number
+  totalCost: number
+  vae: string
+  cpc: string
+  denomination: string
+}
+
+function buildGeneralRows(consolidation: BudgetConsolidation): GeneralComponentRow[] {
+  return [
+    ...consolidation.materials.map((row) => ({ ...row, type: 'Material', key: `material-${row.key}` })),
+    ...consolidation.labor.map((row) => ({ ...row, type: 'Mano de obra', key: `labor-${row.key}` })),
+    ...consolidation.equipment.map((row) => ({ ...row, type: 'Equipo', key: `equipment-${row.key}` })),
+    ...consolidation.transport.map((row) => ({ ...row, type: 'Transporte', key: `transport-${row.key}` })),
+  ]
+}
+
+export function GeneralComponentsTable({
+  consolidation,
+  denominationFilter = '',
+}: {
+  consolidation: BudgetConsolidation
+  denominationFilter?: string
+}) {
+  const rows = buildGeneralRows(consolidation).filter((row) =>
+    denominationFilter.trim() === '' ? true : matchesDenomination(row.denomination, denominationFilter),
+  )
+
+  return (
+    <TableFrame title="Componentes consolidados generales" tableId="general-components-table" fileName="componentes-consolidados">
+      <form className="grid gap-2 border-b border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(240px,360px)_auto]">
+        <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Filtrar por Denominación IPCO
+          <input
+            name="denomination"
+            defaultValue={denominationFilter}
+            placeholder="Código o nombre IPCO"
+            className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm normal-case tracking-normal"
+          />
+        </label>
+        <div className="flex items-end gap-2">
+          <button type="submit" className="h-8 rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
+            Filtrar
+          </button>
+          <a href="?" className="inline-flex h-8 items-center rounded border border-slate-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-800 transition hover:bg-slate-100">
+            Limpiar
+          </a>
+        </div>
+      </form>
+
+      {rows.length === 0 ? (
+        <EmptyConsolidationMessage />
+      ) : (
+        <div className="overflow-x-auto">
+          <table id="general-components-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tipo</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Código</th>
+                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad consolidada</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
+                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {rows.map((row) => (
+                <tr key={row.key} className="hover:bg-blue-50/60">
+                  <td className="px-3 py-2 font-semibold text-slate-800">{row.type}</td>
+                  <td className="px-3 py-2 font-mono text-slate-700">{row.code}</td>
+                  <td className="px-3 py-2 text-slate-800">{row.description}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.unit}</td>
+                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.totalQuantity)}</td>
+                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatNumber(row.unitCost)}</td>
+                  <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatNumber(row.totalCost)}</td>
+                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{row.vae}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.cpc}</td>
+                  <td className="px-3 py-2 text-slate-700">{row.denomination}</td>
                 </tr>
               ))}
-              <tr className="bg-blue-50">
-                <td colSpan={6} className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-blue-950">
-                  Total transporte
-                </td>
-                <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(total)}</td>
-              </tr>
             </tbody>
           </table>
         </div>

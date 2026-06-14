@@ -6,6 +6,11 @@ export async function getProjects() {
   return prisma.project.findMany({
     orderBy: { updatedAt: 'desc' },
     include: {
+      budgets: {
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+        select: { id: true },
+      },
       _count: {
         select: { budgets: true },
       },

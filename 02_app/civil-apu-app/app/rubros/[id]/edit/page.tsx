@@ -133,6 +133,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             submitLabel="Guardar"
             initialData={initialData}
             hiddenId={id}
+            hiddenBudgetId={budgetId}
             variant="technical"
           />
 
@@ -173,8 +174,18 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             </nav>
 
             <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} />
-            <RubroLaborSection rubroId={id} laborItems={laborItems} rubroLabor={rubroLabor} />
-            <RubroEquipmentSection rubroId={id} equipmentItems={equipmentItems} rubroEquipment={rubroEquipment} />
+            <RubroLaborSection
+              rubroId={id}
+              laborItems={laborItems}
+              rubroLabor={rubroLabor}
+              rubroPerformanceValue={initialData.performanceValue ?? null}
+            />
+            <RubroEquipmentSection
+              rubroId={id}
+              equipmentItems={equipmentItems}
+              rubroEquipment={rubroEquipment}
+              rubroPerformanceValue={initialData.performanceValue ?? null}
+            />
             <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} denominations={denominations} />
             <RubroUsageContext contexts={orderedUsageContexts} />
           </main>

@@ -66,7 +66,7 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
               <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{units.length}</p>
             </div>
             <div className="bg-white px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Denominacion IPCO</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Denominación IPCO</p>
               <p className="mt-1 font-mono text-sm font-semibold tabular-nums">Catalogo</p>
             </div>
           </div>
@@ -142,12 +142,14 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 1</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 2</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 3</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -155,7 +157,7 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                 <tbody className="divide-y divide-slate-200">
                   {filteredMaterials.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-3 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={11} className="px-3 py-10 text-center text-sm text-slate-500">
                         {materials.length === 0 ? 'No hay materiales registrados.' : 'No se encontraron registros con los filtros aplicados.'}
                       </td>
                     </tr>
@@ -168,6 +170,8 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{material.price1.toString()}</td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{material.price2?.toString() ?? '-'}</td>
                         <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{material.price3?.toString() ?? '-'}</td>
+                        <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{material.vae?.toString() ?? ''}</td>
+                        <td className="px-3 py-2 text-slate-700">{material.cpc ?? ''}</td>
                         <td className="px-3 py-2 text-slate-700">{material.denomination ? [material.denomination.code, material.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{material.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">

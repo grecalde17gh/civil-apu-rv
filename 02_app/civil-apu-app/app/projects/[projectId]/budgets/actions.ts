@@ -29,7 +29,7 @@ export async function createBudgetAction(formData: FormData) {
     throw new Error('Proyecto no encontrado')
   }
 
-  await createBudget({
+  const budget = await createBudget({
     projectId,
     code: parsed.code,
     name: parsed.name,
@@ -42,7 +42,7 @@ export async function createBudgetAction(formData: FormData) {
     locationSnapshot: project.location ?? undefined,
   })
 
-  redirect(`/projects/${projectId}/budgets`)
+  redirect(`/projects/${projectId}/budgets/${budget.id}/edit`)
 }
 
 export async function updateBudgetAction(formData: FormData) {
@@ -70,7 +70,7 @@ export async function updateBudgetAction(formData: FormData) {
     return
   }
 
-  redirect(`/projects/${projectId}/budgets`)
+  redirect(`/projects/${projectId}/budgets/${id}/edit`)
 }
 
 async function createBudgetItemFromForm(formData: FormData): Promise<string> {

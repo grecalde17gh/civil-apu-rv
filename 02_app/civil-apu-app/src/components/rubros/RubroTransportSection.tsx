@@ -56,7 +56,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Denominacion IPCO
+            Denominación IPCO
             <DenominationCombobox options={denominationOptions} />
           </label>
 
@@ -73,11 +73,11 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
@@ -130,7 +130,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
                           <input name="unitCost" defaultValue={line.unitCost.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
                         </label>
                         <label className="text-xs font-medium text-slate-600">
-                          Denominacion IPCO
+                          Denominación IPCO
                           <DenominationCombobox options={denominationOptions} initialId={line.denominationId ?? ''} />
                         </label>
                         <label className="text-xs font-medium text-slate-600">

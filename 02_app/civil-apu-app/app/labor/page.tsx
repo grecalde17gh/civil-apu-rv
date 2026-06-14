@@ -131,10 +131,12 @@ export default async function LaborPage({ searchParams }: PageProps) {
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                    <th className="min-w-[260px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rol</th>
+                    <th className="min-w-[260px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -142,7 +144,7 @@ export default async function LaborPage({ searchParams }: PageProps) {
                 <tbody className="divide-y divide-slate-200">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-3 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={9} className="px-3 py-10 text-center text-sm text-slate-500">
                         {items.length === 0 ? 'No hay mano de obra registrada.' : 'No se encontraron registros con los filtros aplicados.'}
                       </td>
                     </tr>
@@ -153,6 +155,8 @@ export default async function LaborPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 text-slate-800">{item.roleName}</td>
                         <td className="px-3 py-2 text-slate-700">hora</td>
                         <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{item.hourlyCost.toString()}</td>
+                        <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.vae?.toString() ?? ''}</td>
+                        <td className="px-3 py-2 text-slate-700">{item.cpc ?? ''}</td>
                         <td className="px-3 py-2 text-slate-700">{item.denomination ? [item.denomination.code, item.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{item.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">

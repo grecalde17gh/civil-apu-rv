@@ -1,5 +1,16 @@
 type DecimalInput = number | string | { toString(): string }
 
+type DenominationInput = {
+  code?: string | null
+  name?: string | null
+} | null | undefined
+
+type CatalogMetadataInput = {
+  cpc?: string | null
+  vae?: DecimalInput | null
+  denomination?: DenominationInput
+}
+
 type MaterialLineInput = {
   materialId: string
   quantity: DecimalInput
@@ -11,7 +22,7 @@ type MaterialLineInput = {
     unit: string
     usesCategory1: boolean
     usesCategory2: boolean
-  } | null
+  } & CatalogMetadataInput | null
 }
 
 type LaborLineInput = {
@@ -21,7 +32,7 @@ type LaborLineInput = {
   laborItem?: {
     code?: string | null
     roleName: string
-  } | null
+  } & CatalogMetadataInput | null
 }
 
 type EquipmentLineInput = {
@@ -31,7 +42,7 @@ type EquipmentLineInput = {
   equipmentItem?: {
     code?: string | null
     description: string
-  } | null
+  } & CatalogMetadataInput | null
 }
 
 type TransportLineInput = {
@@ -41,6 +52,7 @@ type TransportLineInput = {
   unit?: string | null
   quantity: DecimalInput
   unitCost: DecimalInput
+  denomination?: DenominationInput
 }
 
 export type BudgetConsolidationInput = {
@@ -65,6 +77,9 @@ export type ConsolidatedMaterial = {
   totalCost: number
   usesCategory1: boolean
   usesCategory2: boolean
+  cpc: string
+  vae: string
+  denomination: string
 }
 
 export type ConsolidatedLabor = {
@@ -75,6 +90,9 @@ export type ConsolidatedLabor = {
   totalQuantity: number
   unitCost: number
   totalCost: number
+  cpc: string
+  vae: string
+  denomination: string
 }
 
 export type ConsolidatedEquipment = ConsolidatedLabor
@@ -88,6 +106,9 @@ export type ConsolidatedTransport = {
   unitCost: number
   totalQuantity: number
   totalCost: number
+  cpc: string
+  vae: string
+  denomination: string
 }
 
 export type BudgetConsolidation = {
@@ -128,6 +149,15 @@ function sortByCodeAndDescription<T extends { code: string; description: string 
   })
 }
 
+function formatOptionalDecimal(value: DecimalInput | null | undefined): string {
+  return value === null || value === undefined ? '' : value.toString()
+}
+
+function formatDenomination(denomination: DenominationInput): string {
+  if (!denomination) return ''
+  return [denomination.code, denomination.name].filter(Boolean).join(' - ')
+}
+
 export function consolidateBudgetComponents(budget: BudgetConsolidationInput): BudgetConsolidation {
   const materials = new Map<string, ConsolidatedMaterial>()
   const labor = new Map<string, ConsolidatedLabor>()
@@ -161,6 +191,9 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalCost,
           usesCategory1: material?.usesCategory1 ?? false,
           usesCategory2: material?.usesCategory2 ?? false,
+          cpc: material?.cpc ?? '',
+          vae: formatOptionalDecimal(material?.vae),
+          denomination: formatDenomination(material?.denomination),
         })
       }
     }
@@ -184,6 +217,9 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalQuantity: quantity,
           unitCost,
           totalCost,
+          cpc: itemLabor?.cpc ?? '',
+          vae: formatOptionalDecimal(itemLabor?.vae),
+          denomination: formatDenomination(itemLabor?.denomination),
         })
       }
     }
@@ -207,6 +243,9 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalQuantity: quantity,
           unitCost,
           totalCost,
+          cpc: itemEquipment?.cpc ?? '',
+          vae: formatOptionalDecimal(itemEquipment?.vae),
+          denomination: formatDenomination(itemEquipment?.denomination),
         })
       }
     }
@@ -232,6 +271,9 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalQuantity: quantity,
           unitCost,
           totalCost,
+          cpc: '',
+          vae: '',
+          denomination: formatDenomination(line.denomination),
         })
       }
     }

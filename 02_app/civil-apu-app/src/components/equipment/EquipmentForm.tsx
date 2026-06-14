@@ -31,7 +31,7 @@ export default function EquipmentForm({ action, initialData, denominations = [],
         </label>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Descripción
+          Estructura organizacional
           <input
             name="description"
             defaultValue={initialData?.description ?? ''}
@@ -42,7 +42,7 @@ export default function EquipmentForm({ action, initialData, denominations = [],
       </div>
 
       <label className="space-y-2 text-sm font-medium text-zinc-700">
-        Denominacion IPCO
+        Denominación IPCO
         <DenominationCombobox options={denominationOptions} initialId={initialData?.denominationId ?? ''} />
       </label>
 
@@ -133,7 +133,7 @@ export default function EquipmentForm({ action, initialData, denominations = [],
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Fecha de precio
+          Última actualización
           <input
             name="priceDate"
             type="date"

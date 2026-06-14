@@ -24,7 +24,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   }
   const items = await getEquipmentItems()
   const filteredItems = filterEquipment(items, filters)
-  const types = [...new Set(items.map((item) => item.equipmentType).filter(Boolean))].sort()
+  const types = [...new Set(items.map((item) => item.equipmentType).filter((type): type is string => Boolean(type)))].sort()
   const activeCount = items.filter((item) => item.isActive).length
   const withHourlyRateCount = items.filter((item) => item.hourlyRate !== null).length
 
@@ -141,10 +141,12 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
+                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estado</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
                   </tr>
@@ -152,7 +154,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                 <tbody className="divide-y divide-slate-200">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-3 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={9} className="px-3 py-10 text-center text-sm text-slate-500">
                         {items.length === 0 ? 'No hay equipos registrados.' : 'No se encontraron registros con los filtros aplicados.'}
                       </td>
                     </tr>
@@ -165,6 +167,8 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                         <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                           {item.hourlyRate !== null && item.hourlyRate !== undefined ? item.hourlyRate.toString() : '-'}
                         </td>
+                        <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{item.vae?.toString() ?? ''}</td>
+                        <td className="px-3 py-2 text-slate-700">{item.cpc ?? ''}</td>
                         <td className="px-3 py-2 text-slate-700">{item.denomination ? [item.denomination.code, item.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{item.isActive ? 'Activo' : 'Inactivo'}</td>
                         <td className="px-3 py-2">

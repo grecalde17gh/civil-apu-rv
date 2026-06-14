@@ -34,15 +34,17 @@ export async function getBudgetByIdForEdit(budgetId: string) {
           rubro: {
             include: {
               materials: {
-                include: { material: true },
+                include: { material: { include: { denomination: true } } },
               },
               labor: {
-                include: { laborItem: true },
+                include: { laborItem: { include: { denomination: true } } },
               },
               equipment: {
-                include: { equipmentItem: true },
+                include: { equipmentItem: { include: { denomination: true } } },
               },
-              transport: true,
+              transport: {
+                include: { denomination: true },
+              },
             },
           },
         },

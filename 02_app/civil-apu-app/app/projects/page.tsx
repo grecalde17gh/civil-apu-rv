@@ -178,7 +178,13 @@ export default async function ProjectsPage() {
                       </td>
                     </tr>
                   ) : (
-                    projects.map((project) => (
+                    projects.map((project) => {
+                      const latestBudgetId = project.budgets[0]?.id
+                      const budgetHref = latestBudgetId
+                        ? `/projects/${project.id}/budgets/${latestBudgetId}/edit`
+                        : `/projects/${project.id}/budgets/new`
+
+                      return (
                       <tr key={project.id} className="hover:bg-blue-50/60">
                         <td className="px-3 py-2 font-mono text-slate-700">{project.id.slice(0, 8)}</td>
                         <td className="px-3 py-2 font-semibold text-slate-900">{project.name}</td>
@@ -206,15 +212,15 @@ export default async function ProjectsPage() {
                               Crear presupuesto
                             </Link>
                             <Link
-                              href={`/projects/${project.id}/budgets`}
+                              href={budgetHref}
                               className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                             >
-                              Presupuestos
+                              Presupuesto
                             </Link>
                           </div>
                         </td>
                       </tr>
-                    ))
+                    )})
                   )}
                 </tbody>
               </table>

@@ -9,9 +9,12 @@ type RubroLaborSectionProps = {
   rubroId: string
   laborItems: Array<LaborItem & { denomination?: IpcoDenomination | null }>
   rubroLabor: RubroLaborWithLabor[]
+  rubroPerformanceValue?: number | null
 }
 
-export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: RubroLaborSectionProps) {
+export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rubroPerformanceValue }: RubroLaborSectionProps) {
+  const hasRubroPerformance = typeof rubroPerformanceValue === 'number' && Number.isFinite(rubroPerformanceValue) && rubroPerformanceValue > 0
+  const rubroPerformanceInputValue = hasRubroPerformance ? String(rubroPerformanceValue) : ''
   const laborOptions = laborItems.map((labor) => ({
     id: labor.id,
     label: formatCatalogOption([labor.code, labor.roleName, 'hora'], labor.hourlyCost.toString()),
@@ -26,8 +29,9 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
           <h2 className="text-base font-semibold text-slate-950">Cuadrilla y rendimiento</h2>
         </div>
 
-        <form action={addRubroLaborAction} className="grid gap-2 lg:grid-cols-[minmax(250px,1fr)_95px_110px_130px]">
+        <form action={addRubroLaborAction} className="grid gap-2 lg:grid-cols-[minmax(250px,1fr)_95px_130px_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
+          <input type="hidden" name="timeRequired" value={rubroPerformanceInputValue} />
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Cargo
@@ -45,12 +49,12 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Rend./horas
-            <input name="timeRequired" required inputMode="decimal" className="mt-1 h-8 w-full rounded border border-slate-300 px-2 text-sm" />
+            Rend. general
+            <input value={rubroPerformanceInputValue} readOnly className="mt-1 h-8 w-full rounded border border-slate-200 bg-slate-100 px-2 text-sm text-slate-600" />
           </label>
 
           <div className="flex items-end">
-            <button type="submit" className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
+            <button type="submit" disabled={!hasRubroPerformance} className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:border disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500">
               Agregar
             </button>
           </div>
@@ -62,7 +66,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripcion</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rendimiento</th>
@@ -102,13 +106,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                       payload={payload}
                       required
                     />
-                    <InlineEditableCell
-                      actionName="labor"
-                      fieldName="timeRequired"
-                      value={timeRequired}
-                      payload={payload}
-                      required
-                    />
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-600">{timeRequired}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.hourlyCostSnapshot.toString()}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                       {line.totalCost.toString()}
@@ -129,14 +127,15 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor }: R
                       <form action={updateRubroLaborAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
+                        <input type="hidden" name="timeRequired" value={timeRequired} />
                         <label className="text-xs font-medium text-slate-600">
                           Cantidad
                           <input name="workerQuantity" defaultValue={line.workerQuantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
                         </label>
-                        <label className="text-xs font-medium text-slate-600">
+                        <div className="text-xs font-medium text-slate-600">
                           Rendimiento/horas
-                          <input name="timeRequired" defaultValue={line.timeRequired?.toString() ?? '0'} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
+                          <p className="mt-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm tabular-nums text-slate-700">{timeRequired}</p>
+                        </div>
                         <div className="text-xs font-medium text-slate-600">
                           Tarifa
                           <p className="mt-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm tabular-nums text-slate-700">{line.hourlyCostSnapshot.toString()}</p>

@@ -31,7 +31,7 @@ export default function LaborForm({ action, initialData, denominations = [], sub
         </label>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Rol / Nombre
+          Estructura organizacional
           <input
             name="roleName"
             defaultValue={initialData?.roleName ?? ''}
@@ -74,7 +74,7 @@ export default function LaborForm({ action, initialData, denominations = [], sub
       </div>
 
       <label className="space-y-2 text-sm font-medium text-zinc-700">
-        Denominacion IPCO
+        Denominación IPCO
         <DenominationCombobox options={denominationOptions} initialId={initialData?.denominationId ?? ''} />
       </label>
 
@@ -93,7 +93,7 @@ export default function LaborForm({ action, initialData, denominations = [], sub
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Fecha de precio
+          Última actualización
           <input
             name="priceDate"
             type="date"
