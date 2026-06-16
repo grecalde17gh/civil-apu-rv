@@ -1,6 +1,7 @@
 import type { IpcoDenomination, RubroTransport } from '@prisma/client'
 import { addRubroTransportAction, deleteRubroTransportAction, updateRubroTransportAction } from '@/app/rubros/actions'
 import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
+import { calculateNpEpNd, calculateRelativeWeight, calculateVaeElement } from '@/src/lib/calculations/rubroComponentParticipation'
 
 type RubroTransportWithDenomination = RubroTransport & {
   denomination?: IpcoDenomination | null
@@ -10,9 +11,10 @@ type RubroTransportSectionProps = {
   rubroId: string
   rubroTransport: RubroTransportWithDenomination[]
   denominations?: IpcoDenomination[]
+  rubroDirectTotal: number
 }
 
-export default function RubroTransportSection({ rubroId, rubroTransport, denominations = [] }: RubroTransportSectionProps) {
+export default function RubroTransportSection({ rubroId, rubroTransport, denominations = [], rubroDirectTotal }: RubroTransportSectionProps) {
   const denominationOptions = denominations.map((denomination) => ({
     id: denomination.id,
     label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
@@ -56,7 +58,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
           </label>
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Denominación IPCO
+            Denominacion IPCO
             <DenominationCombobox options={denominationOptions} />
           </label>
 
@@ -77,8 +79,13 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Peso relativo %</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC 1 elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">NP/EP/ND</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE %</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE % elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominacion IPCO</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
             </tr>
@@ -86,76 +93,91 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
           <tbody className="divide-y divide-slate-200">
             {rubroTransport.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-5 text-sm text-slate-500">
+                <td colSpan={14} className="px-3 py-5 text-sm text-slate-500">
                   No hay transporte registrado para este rubro.
                 </td>
               </tr>
             ) : (
-              rubroTransport.map((line) => (
-                <tr key={line.id} className="hover:bg-blue-50/60">
-                  <td className="px-3 py-2 font-mono text-slate-700">{line.code ?? '-'}</td>
-                  <td className="px-3 py-2 text-slate-800">{line.description}</td>
-                  <td className="px-3 py-2 text-slate-700">{line.unit ?? '-'}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.quantity.toString()}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCost.toString()}</td>
-                  <td className="px-3 py-2 text-slate-700">{line.denomination ? [line.denomination.code, line.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
-                  <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
-                  <td className="px-3 py-2 text-slate-600">{line.notes ?? '-'}</td>
-                  <td className="px-3 py-2 text-slate-700">
-                    <details className="mb-2">
-                      <summary className="cursor-pointer rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
-                        Editar
-                      </summary>
-                      <form action={updateRubroTransportAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
+              rubroTransport.map((line) => {
+                const relativeWeight = calculateRelativeWeight(Number(line.totalCost.toString()), rubroDirectTotal)
+                const vae = null
+                const vaeElement = calculateVaeElement(relativeWeight, vae)
+
+                return (
+                  <tr key={line.id} className="hover:bg-blue-50/60">
+                    <td className="px-3 py-2 font-mono text-slate-700">{line.code ?? '-'}</td>
+                    <td className="px-3 py-2 text-slate-800">{line.description}</td>
+                    <td className="px-3 py-2 text-slate-700">{line.unit ?? '-'}</td>
+                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.quantity.toString()}</td>
+                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCost.toString()}</td>
+                    <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(relativeWeight)}</td>
+                    <td className="px-3 py-2 font-mono text-slate-700">-</td>
+                    <td className="px-3 py-2 font-semibold text-slate-700">{calculateNpEpNd(vae)}</td>
+                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">-</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(vaeElement)}</td>
+                    <td className="px-3 py-2 text-slate-700">{line.denomination ? [line.denomination.code, line.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
+                    <td className="px-3 py-2 text-slate-600">{line.notes ?? '-'}</td>
+                    <td className="px-3 py-2 text-slate-700">
+                      <details className="mb-2">
+                        <summary className="cursor-pointer rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+                          Editar
+                        </summary>
+                        <form action={updateRubroTransportAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
+                          <input type="hidden" name="id" value={line.id} />
+                          <input type="hidden" name="rubroId" value={rubroId} />
+                          <label className="text-xs font-medium text-slate-600">
+                            Codigo
+                            <input name="code" defaultValue={line.code ?? ''} placeholder="TR-001" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Descripcion
+                            <input name="description" defaultValue={line.description} required className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Unidad
+                            <input name="unit" defaultValue={line.unit ?? ''} required className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Cantidad
+                            <input name="quantity" defaultValue={line.quantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Precio
+                            <input name="unitCost" defaultValue={line.unitCost.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Denominacion IPCO
+                            <DenominationCombobox options={denominationOptions} initialId={line.denominationId ?? ''} />
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">
+                            Observacion
+                            <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+                          </label>
+                          <button type="submit" className="rounded bg-blue-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-800">
+                            Guardar
+                          </button>
+                        </form>
+                      </details>
+                      <form action={deleteRubroTransportAction} className="inline">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
-                        <label className="text-xs font-medium text-slate-600">
-                          Codigo
-                          <input name="code" defaultValue={line.code ?? ''} placeholder="TR-001" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Descripcion
-                          <input name="description" defaultValue={line.description} required className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Unidad
-                          <input name="unit" defaultValue={line.unit ?? ''} required className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Cantidad
-                          <input name="quantity" defaultValue={line.quantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Precio
-                          <input name="unitCost" defaultValue={line.unitCost.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Denominación IPCO
-                          <DenominationCombobox options={denominationOptions} initialId={line.denominationId ?? ''} />
-                        </label>
-                        <label className="text-xs font-medium text-slate-600">
-                          Observacion
-                          <input name="notes" defaultValue={line.notes ?? ''} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
-                        </label>
-                        <button type="submit" className="rounded bg-blue-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-800">
-                          Guardar
+                        <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
+                          Eliminar
                         </button>
                       </form>
-                    </details>
-                    <form action={deleteRubroTransportAction} className="inline">
-                      <input type="hidden" name="id" value={line.id} />
-                      <input type="hidden" name="rubroId" value={rubroId} />
-                      <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
-                        Eliminar
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
       </div>
     </section>
   )
+}
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`
 }

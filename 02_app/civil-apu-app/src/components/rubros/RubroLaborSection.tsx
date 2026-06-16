@@ -3,6 +3,7 @@ import type { RubroLaborWithLabor } from '@/src/lib/db/rubroLabor'
 import { addRubroLaborAction, deleteRubroLaborAction, updateRubroLaborAction } from '@/app/rubros/actions'
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
 import { formatCatalogOption } from '@/src/lib/catalogSearch'
+import { calculateNpEpNd, calculateRelativeWeight, calculateVaeElement } from '@/src/lib/calculations/rubroComponentParticipation'
 import InlineEditableCell from './InlineEditableCell'
 
 type RubroLaborSectionProps = {
@@ -10,9 +11,10 @@ type RubroLaborSectionProps = {
   laborItems: Array<LaborItem & { denomination?: IpcoDenomination | null }>
   rubroLabor: RubroLaborWithLabor[]
   rubroPerformanceValue?: number | null
+  rubroDirectTotal: number
 }
 
-export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rubroPerformanceValue }: RubroLaborSectionProps) {
+export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rubroPerformanceValue, rubroDirectTotal }: RubroLaborSectionProps) {
   const hasRubroPerformance = typeof rubroPerformanceValue === 'number' && Number.isFinite(rubroPerformanceValue) && rubroPerformanceValue > 0
   const rubroPerformanceInputValue = hasRubroPerformance ? String(rubroPerformanceValue) : ''
   const laborOptions = laborItems.map((labor) => ({
@@ -71,7 +73,12 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rub
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rendimiento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Peso relativo %</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC 1 elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">NP/EP/ND</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE %</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE % elemento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Observacion</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Acciones</th>
             </tr>
@@ -79,7 +86,7 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rub
           <tbody className="divide-y divide-slate-200">
             {rubroLabor.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-5 text-sm text-slate-500">
+                <td colSpan={14} className="px-3 py-5 text-sm text-slate-500">
                   No hay mano de obra agregada al rubro.
                 </td>
               </tr>
@@ -93,6 +100,9 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rub
                   timeRequired,
                   notes: line.notes ?? '',
                 }
+                const relativeWeight = calculateRelativeWeight(Number(line.totalCost.toString()), rubroDirectTotal)
+                const vae = line.laborItem.vae
+                const vaeElement = calculateVaeElement(relativeWeight, vae)
 
                 return (
                   <tr key={line.id} className="hover:bg-blue-50/60">
@@ -111,6 +121,11 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rub
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
                       {line.totalCost.toString()}
                     </td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(relativeWeight)}</td>
+                    <td className="px-3 py-2 font-mono text-slate-700">{line.laborItem.cpc ?? '-'}</td>
+                    <td className="px-3 py-2 font-semibold text-slate-700">{calculateNpEpNd(vae)}</td>
+                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatVae(vae)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(vaeElement)}</td>
                     <InlineEditableCell
                       actionName="labor"
                       fieldName="notes"
@@ -166,4 +181,17 @@ export default function RubroLaborSection({ rubroId, laborItems, rubroLabor, rub
       </div>
     </section>
   )
+}
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`
+}
+
+function formatVae(value: LaborItem['vae']): string {
+  if (value === null || value === undefined) {
+    return '-'
+  }
+
+  const numericValue = Number(value.toString())
+  return Number.isFinite(numericValue) ? formatPercent(numericValue) : '-'
 }

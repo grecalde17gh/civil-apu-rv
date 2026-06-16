@@ -173,20 +173,22 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               ))}
             </nav>
 
-            <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} />
+            <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} rubroDirectTotal={totals.directCost} />
             <RubroLaborSection
               rubroId={id}
               laborItems={laborItems}
               rubroLabor={rubroLabor}
               rubroPerformanceValue={initialData.performanceValue ?? null}
+              rubroDirectTotal={totals.directCost}
             />
             <RubroEquipmentSection
               rubroId={id}
               equipmentItems={equipmentItems}
               rubroEquipment={rubroEquipment}
               rubroPerformanceValue={initialData.performanceValue ?? null}
+              rubroDirectTotal={totals.directCost}
             />
-            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} denominations={denominations} />
+            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} denominations={denominations} rubroDirectTotal={totals.directCost} />
             <RubroUsageContext contexts={orderedUsageContexts} />
           </main>
 
