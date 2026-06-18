@@ -9,8 +9,15 @@ import { getRubroById } from '@/src/lib/db/rubros'
 import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject, updateBudgetItemQuantity } from '@/src/lib/db/budgets'
 import { calculateBudgetItemSnapshots } from '@/src/lib/calculations/budget'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
+import { updateBudgetSchedule } from '@/src/lib/db/budgetSchedule'
+import { validateBudgetScheduleInput } from '@/src/lib/validations/budgetSchedule'
 
 export type BudgetItemActionState = {
+  ok: boolean
+  message: string | null
+}
+
+export type BudgetScheduleActionState = {
   ok: boolean
   message: string | null
 }
@@ -203,4 +210,36 @@ export async function copyBudgetAction(formData: FormData) {
 
   const copied = await copyBudget(budgetId)
   redirect(`/projects/${projectId}/budgets/${copied.id}/edit`)
+}
+
+export async function updateBudgetScheduleAction(
+  _previousState: BudgetScheduleActionState,
+  formData: FormData,
+): Promise<BudgetScheduleActionState> {
+  const budgetId = formData.get('budgetId')
+
+  if (typeof budgetId !== 'string') {
+    return { ok: false, message: 'Presupuesto no encontrado.' }
+  }
+
+  try {
+    const entriesRaw = formData.get('entries')
+    const parsed = validateBudgetScheduleInput({
+      weekCount: formData.get('weekCount'),
+      entries: typeof entriesRaw === 'string' && entriesRaw.trim() !== '' ? JSON.parse(entriesRaw) : [],
+    })
+
+    await updateBudgetSchedule({
+      budgetId,
+      weekCount: parsed.weekCount,
+      entries: parsed.entries,
+    })
+
+    return { ok: true, message: 'Cronograma valorado guardado.' }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'No se pudo guardar el cronograma valorado.',
+    }
+  }
 }

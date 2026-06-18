@@ -414,7 +414,8 @@ model Budget {
   createdById String?
   createdBy   User?   @relation("CreatedBudgets", fields: [createdById], references: [id])
 
-  items BudgetItem[]
+  items    BudgetItem[]
+  schedule BudgetSchedule?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -443,12 +444,48 @@ model BudgetItem {
 
   budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   rubro  Rubro  @relation(fields: [rubroId], references: [id])
+  scheduleEntries BudgetScheduleEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([budgetId])
   @@index([rubroId])
+}
+
+model BudgetSchedule {
+  id        String @id @default(uuid())
+  budgetId  String @unique
+  weekCount Int    @default(8)
+
+  budget  Budget                @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  entries BudgetScheduleEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([budgetId])
+}
+
+model BudgetScheduleEntry {
+  id                   String  @id @default(uuid())
+  scheduleId           String
+  budgetItemId         String
+  groupName            String  @default("Grupo 1")
+  startWeek            Int?
+  endWeek              Int?
+  totalAmountSnapshot  Decimal @default(0) @db.Decimal(12, 4)
+  weeklyAmountSnapshot Decimal @default(0) @db.Decimal(12, 4)
+
+  schedule  BudgetSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  budgetItem BudgetItem     @relation(fields: [budgetItemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scheduleId, budgetItemId])
+  @@index([scheduleId])
+  @@index([budgetItemId])
 }
 
 model CalculationSetting {

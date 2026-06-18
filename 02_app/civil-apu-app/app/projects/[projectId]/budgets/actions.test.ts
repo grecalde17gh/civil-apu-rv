@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getBudgetByIdWithProject: vi.fn(),
   getProjectById: vi.fn(),
   getRubroById: vi.fn(),
+  updateBudgetSchedule: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`)
   }),
@@ -41,6 +42,10 @@ vi.mock('@/src/lib/db/rubros', () => ({
   getRubroById: mocks.getRubroById,
 }))
 
+vi.mock('@/src/lib/db/budgetSchedule', () => ({
+  updateBudgetSchedule: mocks.updateBudgetSchedule,
+}))
+
 vi.mock('@/src/lib/validations/budget', () => ({
   validateBudgetInput: vi.fn(),
   validateBudgetItemInput: (data: Record<string, FormDataEntryValue>) => ({
@@ -52,6 +57,21 @@ vi.mock('@/src/lib/validations/budget', () => ({
     budgetItemId: String(data.budgetItemId),
     projectId: data.projectId ? String(data.projectId) : undefined,
     quantity: Number(String(data.quantity).replace(',', '.')),
+  }),
+}))
+
+vi.mock('@/src/lib/validations/budgetSchedule', () => ({
+  validateBudgetScheduleInput: (data: {
+    weekCount: FormDataEntryValue | null
+    entries: Array<{
+      budgetItemId: string
+      groupName: string
+      startWeek: number | null
+      endWeek: number | null
+    }>
+  }) => ({
+    weekCount: Number(data.weekCount),
+    entries: data.entries,
   }),
 }))
 
@@ -87,7 +107,7 @@ vi.mock('@/src/lib/validations/rubroCompletion', () => ({
     Number(rubro.directCost?.toString() ?? '0') > 0,
 }))
 
-import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction, updateBudgetItemQuantityAction } from './actions'
+import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction, updateBudgetItemQuantityAction, updateBudgetScheduleAction } from './actions'
 
 describe('addBudgetItemAction', () => {
   beforeEach(() => {
@@ -220,5 +240,38 @@ describe('addBudgetItemAction', () => {
       quantity: 2.5,
     })
     expect(mocks.getRubroById).not.toHaveBeenCalled()
+  })
+
+  it('updates a budget schedule from serialized entries', async () => {
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('weekCount', '8')
+    formData.set(
+      'entries',
+      JSON.stringify([
+        {
+          budgetItemId: 'budget-item-1',
+          groupName: 'PRELIMINARES',
+          startWeek: 2,
+          endWeek: 4,
+        },
+      ]),
+    )
+
+    const result = await updateBudgetScheduleAction({ ok: true, message: null }, formData)
+
+    expect(result.ok).toBe(true)
+    expect(mocks.updateBudgetSchedule).toHaveBeenCalledWith({
+      budgetId: 'budget-test1',
+      weekCount: 8,
+      entries: [
+        {
+          budgetItemId: 'budget-item-1',
+          groupName: 'PRELIMINARES',
+          startWeek: 2,
+          endWeek: 4,
+        },
+      ],
+    })
   })
 })

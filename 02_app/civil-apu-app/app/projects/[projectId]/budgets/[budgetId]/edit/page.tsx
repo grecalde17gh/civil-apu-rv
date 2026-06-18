@@ -2,9 +2,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BudgetForm from '@/src/components/budgets/BudgetForm'
 import BudgetConsolidationTables, { GeneralComponentsTable } from '@/src/components/budgets/BudgetConsolidationTables'
+import BudgetScheduleTable, { type BudgetScheduleRow } from '@/src/components/budgets/BudgetScheduleTable'
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
+import { getBudgetScheduleForEdit } from '@/src/lib/db/budgetSchedule'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
-import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction } from '../../actions'
+import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction, updateBudgetScheduleAction } from '../../actions'
 import BudgetItemForm, { type BudgetItemFormRubro } from '@/src/components/budgets/BudgetItemForm'
 import BudgetItemsTable, { type BudgetItemsTableItem } from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
@@ -28,6 +30,7 @@ const tabs = [
   { key: 'mano-obra', label: 'Mano de obra consolidada' },
   { key: 'equipos', label: 'Equipos consolidados' },
   { key: 'transporte', label: 'Transporte consolidado' },
+  { key: 'cronograma', label: 'Cronograma valorado' },
 ] as const
 
 type BudgetTab = (typeof tabs)[number]['key']
@@ -40,6 +43,7 @@ function getConsolidationSection(tab: BudgetTab) {
   if (tab === 'materiales') return 'materials'
   if (tab === 'mano-obra') return 'labor'
   if (tab === 'equipos') return 'equipment'
+  if (tab === 'cronograma') return 'materials'
   return 'transport'
 }
 
@@ -101,6 +105,21 @@ function serializeBudgetItem(item: NonNullable<Awaited<ReturnType<typeof getBudg
   }
 }
 
+function serializeScheduleRows(schedule: NonNullable<Awaited<ReturnType<typeof getBudgetScheduleForEdit>>>): BudgetScheduleRow[] {
+  return schedule.entries.map((entry) => ({
+    budgetItemId: entry.budgetItemId,
+    itemNumber: entry.budgetItem.itemNumber,
+    code: entry.budgetItem.rubroCodeSnapshot,
+    description: entry.budgetItem.descriptionSnapshot,
+    unit: entry.budgetItem.unitSnapshot,
+    quantity: entry.budgetItem.quantity.toString(),
+    totalAmount: Number(entry.budgetItem.subtotalSnapshot?.toString() ?? entry.budgetItem.totalPrice?.toString() ?? '0'),
+    groupName: entry.groupName || 'Grupo 1',
+    startWeek: entry.startWeek,
+    endWeek: entry.endWeek,
+  }))
+}
+
 export default async function EditBudgetPage({ params, searchParams }: EditBudgetPageProps) {
   const { projectId, budgetId } = await params
   const { tab, denomination } = (await searchParams) ?? {}
@@ -137,6 +156,7 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
   const consolidation = consolidateBudgetComponents(budget)
   const serializedRubros = rubros.map(serializeRubro)
   const serializedBudgetItems = budget.items.map(serializeBudgetItem)
+  const schedule = activeTab === 'cronograma' ? await getBudgetScheduleForEdit(budgetId) : null
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -286,6 +306,16 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
             </div>
 
             <GeneralComponentsTable consolidation={consolidation} denominationFilter={denomination ?? ''} />
+          </div>
+        ) : activeTab === 'cronograma' && schedule ? (
+          <div className="mt-4">
+            <BudgetScheduleTable
+              budgetId={budgetId}
+              projectId={projectId}
+              initialWeekCount={schedule.weekCount}
+              rows={serializeScheduleRows(schedule)}
+              action={updateBudgetScheduleAction}
+            />
           </div>
         ) : (
           <div className="mt-4">
