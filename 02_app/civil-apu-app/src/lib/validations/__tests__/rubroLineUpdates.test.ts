@@ -5,34 +5,34 @@ import { validateRubroMaterialUpdateInput } from '../rubroMaterial'
 import { validateRubroTransportUpdateInput } from '../rubroTransport'
 
 describe('rubro line update validations', () => {
-  it('accepts zero values when editing numeric fields', () => {
+  it('accepts positive values when editing numeric fields', () => {
     expect(
       validateRubroMaterialUpdateInput({
         id: 'line-1',
         rubroId: 'rubro-1',
-        quantity: '0',
+        quantity: '1',
         priceOption: '1',
       }).quantity,
-    ).toBe(0)
+    ).toBe(1)
 
     expect(
       validateRubroLaborUpdateInput({
         id: 'line-2',
         rubroId: 'rubro-1',
-        workerQuantity: '0',
-        timeRequired: '0',
+        workerQuantity: '1',
+        timeRequired: '2',
       }).timeRequired,
-    ).toBe(0)
+    ).toBe(2)
 
     expect(
       validateRubroEquipmentUpdateInput({
         id: 'line-3',
         rubroId: 'rubro-1',
-        equipmentQuantity: '0',
-        timeRequired: '0',
+        equipmentQuantity: '1',
+        timeRequired: '2',
         notes: 'Equipo ajustado inline',
       }).timeRequired,
-    ).toBe(0)
+    ).toBe(2)
 
     expect(
       validateRubroEquipmentUpdateInput({
@@ -50,13 +50,22 @@ describe('rubro line update validations', () => {
         rubroId: 'rubro-1',
         description: 'Transporte',
         unit: 'u',
-        quantity: '0',
-        unitCost: '0',
+        quantity: '1',
+        unitCost: '3',
       }).unitCost,
-    ).toBe(0)
+    ).toBe(3)
   })
 
-  it('rejects negative edited numeric fields', () => {
+  it('rejects zero or negative edited numeric fields', () => {
+    expect(() =>
+      validateRubroMaterialUpdateInput({
+        id: 'line-1',
+        rubroId: 'rubro-1',
+        quantity: '0',
+        priceOption: '1',
+      }),
+    ).toThrow()
+
     expect(() =>
       validateRubroMaterialUpdateInput({
         id: 'line-1',

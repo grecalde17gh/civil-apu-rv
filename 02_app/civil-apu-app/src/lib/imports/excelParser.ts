@@ -1,6 +1,8 @@
 import ExcelJS from 'exceljs'
 import parseDecimalString from './numberParser'
 
+type ExcelJsBuffer = Parameters<ExcelJS.Workbook['xlsx']['load']>[0]
+
 export type RawMaterialRow = {
   rowNumber: number
   Code?: string
@@ -14,7 +16,7 @@ export type RawMaterialRow = {
 export async function parseMaterialsSheetFromBuffer(buffer: ArrayBuffer): Promise<RawMaterialRow[]> {
   const workbook = new ExcelJS.Workbook()
   const buf = Buffer.from(buffer)
-  await workbook.xlsx.load(buf)
+  await workbook.xlsx.load(buf as unknown as ExcelJsBuffer)
 
   // Find sheet named 'Materials' (case-insensitive)
   const sheet = workbook.worksheets.find((w) => (w.name || '').toLowerCase() === 'materials')

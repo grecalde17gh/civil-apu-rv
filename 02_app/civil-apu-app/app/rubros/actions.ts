@@ -13,6 +13,32 @@ import { validateRubroEquipmentInput, validateRubroEquipmentUpdateInput } from '
 import { addRubroTransport, deleteRubroTransport, updateRubroTransport } from '@/src/lib/db/rubroTransport'
 import { validateRubroTransportInput, validateRubroTransportUpdateInput } from '@/src/lib/validations/rubroTransport'
 
+function buildRubroEditUrl(rubroId: string, budgetId?: FormDataEntryValue | null, message?: string) {
+  const params = new URLSearchParams()
+
+  if (typeof budgetId === 'string' && budgetId.trim() !== '') {
+    params.set('budgetId', budgetId)
+  }
+
+  if (message) {
+    params.set('componentError', message)
+  }
+
+  const query = params.toString()
+  return `/rubros/${rubroId}/edit${query ? `?${query}` : ''}`
+}
+
+function getRubroRedirectData(formData: FormData) {
+  const rubroId = formData.get('rubroId')
+  const budgetId = formData.get('budgetId')
+
+  if (typeof rubroId !== 'string') {
+    throw new Error('RubroId es requerido')
+  }
+
+  return { rubroId, budgetId }
+}
+
 export async function createRubroAction(formData: FormData) {
   const data = Object.fromEntries(formData)
   const budgetId = formData.get('budgetId')
@@ -69,10 +95,18 @@ export async function copyRubroAction(formData: FormData) {
 
 export async function addRubroMaterialAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroMaterialInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await addRubroMaterial(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroMaterialInput(data)
+    await addRubroMaterial(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione un material y registre una cantidad valida antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function deleteRubroMaterialAction(formData: FormData) {
@@ -84,63 +118,119 @@ export async function deleteRubroMaterialAction(formData: FormData) {
   }
 
   await deleteRubroMaterial(id)
-  redirect(`/rubros/${rubroId}/edit`)
+  redirect(buildRubroEditUrl(rubroId, formData.get('budgetId')))
 }
 
 export async function updateRubroMaterialAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroMaterialUpdateInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await updateRubroMaterial(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroMaterialUpdateInput(data)
+    await updateRubroMaterial(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione un material y registre una cantidad valida antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function addRubroLaborAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroLaborInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await addRubroLabor(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroLaborInput(data)
+    await addRubroLabor(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione mano de obra y registre cantidad/rendimiento validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function addRubroEquipmentAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroEquipmentInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await addRubroEquipment(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroEquipmentInput(data)
+    await addRubroEquipment(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione un equipo y registre cantidad/rendimiento validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function addRubroTransportAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroTransportInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await addRubroTransport(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroTransportInput(data)
+    await addRubroTransport(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione transporte y registre cantidad/precio validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function updateRubroLaborAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroLaborUpdateInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await updateRubroLabor(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroLaborUpdateInput(data)
+    await updateRubroLabor(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione mano de obra y registre cantidad/rendimiento validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function updateRubroEquipmentAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroEquipmentUpdateInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await updateRubroEquipment(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroEquipmentUpdateInput(data)
+    await updateRubroEquipment(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione un equipo y registre cantidad/rendimiento validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function updateRubroTransportAction(formData: FormData) {
   const data = Object.fromEntries(formData)
-  const parsed = validateRubroTransportUpdateInput(data)
+  const { rubroId, budgetId } = getRubroRedirectData(formData)
+  let redirectUrl = buildRubroEditUrl(rubroId, budgetId)
 
-  await updateRubroTransport(parsed)
-  redirect(`/rubros/${parsed.rubroId}/edit`)
+  try {
+    const parsed = validateRubroTransportUpdateInput(data)
+    await updateRubroTransport(parsed)
+    redirectUrl = buildRubroEditUrl(parsed.rubroId, budgetId)
+  } catch {
+    redirectUrl = buildRubroEditUrl(rubroId, budgetId, 'Seleccione transporte y registre cantidad/precio validos antes de guardar.')
+  }
+
+  redirect(redirectUrl)
 }
 
 export async function deleteRubroLaborAction(formData: FormData) {
@@ -152,7 +242,7 @@ export async function deleteRubroLaborAction(formData: FormData) {
   }
 
   await deleteRubroLabor(id)
-  redirect(`/rubros/${rubroId}/edit`)
+  redirect(buildRubroEditUrl(rubroId, formData.get('budgetId')))
 }
 
 export async function deleteRubroEquipmentAction(formData: FormData) {
@@ -164,7 +254,7 @@ export async function deleteRubroEquipmentAction(formData: FormData) {
   }
 
   await deleteRubroEquipment(id)
-  redirect(`/rubros/${rubroId}/edit`)
+  redirect(buildRubroEditUrl(rubroId, formData.get('budgetId')))
 }
 
 export async function deleteRubroTransportAction(formData: FormData) {
@@ -176,5 +266,5 @@ export async function deleteRubroTransportAction(formData: FormData) {
   }
 
   await deleteRubroTransport(id)
-  redirect(`/rubros/${rubroId}/edit`)
+  redirect(buildRubroEditUrl(rubroId, formData.get('budgetId')))
 }

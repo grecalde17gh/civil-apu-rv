@@ -8,13 +8,14 @@ import InlineEditableCell from './InlineEditableCell'
 
 type RubroEquipmentSectionProps = {
   rubroId: string
+  budgetId?: string
   equipmentItems: Array<EquipmentItem & { denomination?: IpcoDenomination | null }>
   rubroEquipment: RubroEquipmentWithItem[]
   rubroPerformanceValue?: number | null
   rubroDirectTotal: number
 }
 
-export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEquipment, rubroPerformanceValue, rubroDirectTotal }: RubroEquipmentSectionProps) {
+export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItems, rubroEquipment, rubroPerformanceValue, rubroDirectTotal }: RubroEquipmentSectionProps) {
   const hasRubroPerformance = typeof rubroPerformanceValue === 'number' && Number.isFinite(rubroPerformanceValue) && rubroPerformanceValue > 0
   const rubroPerformanceInputValue = hasRubroPerformance ? String(rubroPerformanceValue) : ''
   const equipmentOptions = equipmentItems.map((item) => ({
@@ -35,6 +36,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
 
         <form action={addRubroEquipmentAction} className="grid gap-2 lg:grid-cols-[minmax(250px,1fr)_95px_130px_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
+          {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
           <input type="hidden" name="timeRequired" value={rubroPerformanceInputValue} />
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -70,7 +72,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Rendimiento</th>
@@ -142,6 +144,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                       <form action={updateRubroEquipmentAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
+                        {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                         <input type="hidden" name="timeRequired" value={timeRequired} />
                         <label className="text-xs font-medium text-slate-600">
                           Cantidad
@@ -167,6 +170,7 @@ export default function RubroEquipmentSection({ rubroId, equipmentItems, rubroEq
                     <form action={deleteRubroEquipmentAction} className="inline">
                       <input type="hidden" name="id" value={line.id} />
                       <input type="hidden" name="rubroId" value={rubroId} />
+                      {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                       <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
                         Eliminar
                       </button>

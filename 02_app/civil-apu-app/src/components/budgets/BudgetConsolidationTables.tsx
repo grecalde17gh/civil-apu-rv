@@ -30,6 +30,11 @@ function EmptyConsolidationMessage() {
   )
 }
 
+function toNumber(value: string) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : 0
+}
+
 function matchesDenomination(value: string, filter: string) {
   return value.toLowerCase().includes(filter.trim().toLowerCase())
 }
@@ -57,7 +62,7 @@ function MaterialsTable({ rows, total }: { rows: ConsolidatedMaterial[]; total: 
             <thead className="bg-slate-100">
               <tr>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo unitario</th>
@@ -113,7 +118,7 @@ function ResourceTable({
             <thead className="bg-slate-100">
               <tr>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
                 <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
@@ -156,7 +161,7 @@ function TransportTable({ rows, total }: { rows: ConsolidatedTransport[]; total:
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+              <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Distancia</th>
@@ -233,6 +238,8 @@ export function GeneralComponentsTable({
   const rows = buildGeneralRows(consolidation).filter((row) =>
     denominationFilter.trim() === '' ? true : matchesDenomination(row.denomination, denominationFilter),
   )
+  const totalCost = rows.reduce((sum, row) => sum + row.totalCost, 0)
+  const totalVae = rows.reduce((sum, row) => sum + toNumber(row.vae), 0)
 
   return (
     <TableFrame title="Componentes consolidados generales" tableId="general-components-table" fileName="componentes-consolidados">
@@ -256,27 +263,31 @@ export function GeneralComponentsTable({
         </div>
       </form>
 
-      {rows.length === 0 ? (
-        <EmptyConsolidationMessage />
-      ) : (
-        <div className="overflow-x-auto">
-          <table id="general-components-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
-            <thead className="bg-slate-100">
+      <div className="overflow-x-auto">
+        <table id="general-components-table" className="min-w-full divide-y divide-slate-200 text-left text-xs">
+          <thead className="bg-slate-100">
+            <tr>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tipo</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Código</th>
+              <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Descripción</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad consolidada</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {rows.length === 0 ? (
               <tr>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tipo</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Código</th>
-                <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad consolidada</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio unitario</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Total</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC</th>
-                <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Denominación IPCO</th>
+                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-500">
+                  No existen componentes para consolidar en este presupuesto.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {rows.map((row) => (
+            ) : (
+              rows.map((row) => (
                 <tr key={row.key} className="hover:bg-blue-50/60">
                   <td className="px-3 py-2 font-semibold text-slate-800">{row.type}</td>
                   <td className="px-3 py-2 font-mono text-slate-700">{row.code}</td>
@@ -289,11 +300,19 @@ export function GeneralComponentsTable({
                   <td className="px-3 py-2 text-slate-700">{row.cpc}</td>
                   <td className="px-3 py-2 text-slate-700">{row.denomination}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+            <tr className="bg-blue-50">
+              <td colSpan={6} className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-blue-950">
+                TOTAL
+              </td>
+              <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(totalCost)}</td>
+              <td className="px-3 py-2 font-mono font-bold tabular-nums text-blue-950">{formatNumber(totalVae)}</td>
+              <td colSpan={2} />
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </TableFrame>
   )
 }

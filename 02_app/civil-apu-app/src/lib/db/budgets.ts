@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import type { Budget, BudgetStatus, BudgetItem, Prisma } from '@prisma/client'
-import { calculateBudgetItemTotal, calculateTaxAmount } from '@/src/lib/calculations/budget'
+import { calculateBudgetGrandTotal, calculateBudgetItemSnapshots, calculateBudgetItemTotal, calculateTaxAmount } from '@/src/lib/calculations/budget'
 import { buildCopyName, generateCopyCode } from './copy'
 
 export async function getBudgetsByProjectId(projectId: string): Promise<Budget[]> {
@@ -146,8 +146,9 @@ export async function recalculateBudgetTotals(budgetId: string, tx: Prisma.Trans
 
   const ivaPercentage = Number(budget?.ivaPercentage?.toString() ?? '0')
   const ivaAmount = calculateTaxAmount(subtotal, ivaPercentage)
+  const total = calculateBudgetGrandTotal(subtotal, ivaPercentage)
 
-  await tx.budget.update({ where: { id: budgetId }, data: { subtotal, ivaAmount, total: subtotal } })
+  await tx.budget.update({ where: { id: budgetId }, data: { subtotal, ivaAmount, total } })
 }
 
 export async function createBudget(data: {
@@ -187,17 +188,40 @@ export async function updateBudget(budgetId: string, data: {
   notes?: string
   issuedAt?: Date
 }): Promise<Budget> {
-  return prisma.budget.update({
-    where: { id: budgetId },
-    data: {
-      code: data.code ?? undefined,
-      name: data.name,
-      status: data.status,
-      indirectPercentage: data.indirectPercentage,
-      ivaPercentage: data.ivaPercentage,
-      notes: data.notes ?? undefined,
-      issuedAt: data.issuedAt ?? undefined,
-    },
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.budget.update({
+      where: { id: budgetId },
+      data: {
+        code: data.code ?? undefined,
+        name: data.name,
+        status: data.status,
+        indirectPercentage: data.indirectPercentage,
+        ivaPercentage: data.ivaPercentage,
+        notes: data.notes ?? undefined,
+        issuedAt: data.issuedAt ?? undefined,
+      },
+    })
+
+    const items = await tx.budgetItem.findMany({ where: { budgetId } })
+
+    for (const item of items) {
+      const quantity = Number(item.quantity.toString())
+      const directCost = Number(item.directCostSnapshot.toString())
+      const snapshots = calculateBudgetItemSnapshots({
+        quantity,
+        directCost,
+        indirectPercentage: data.indirectPercentage,
+      })
+
+      await tx.budgetItem.update({
+        where: { id: item.id },
+        data: snapshots,
+      })
+    }
+
+    await recalculateBudgetTotals(budgetId, tx)
+
+    return updated
   })
 }
 

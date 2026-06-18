@@ -132,6 +132,8 @@ describe('excel export helpers', () => {
             descriptionSnapshot: 'Hormigon',
             unitSnapshot: 'm3',
             quantity: 2,
+            directCostSnapshot: 40,
+            indirectCostSnapshot: 10,
             unitPriceSnapshot: 50,
             subtotalSnapshot: 100,
             totalPrice: 100,

@@ -139,8 +139,11 @@ async function buildLaborPreviewRows(rows: LaborImportRow[], rawValues: Map<numb
 
     if (status === 'new' && !cleanString(row.Code)) {
       const generatedCode = assignMissingCatalogCodes([row], usedCodes, 'MO')[0].Code
+      if (!generatedCode) {
+        errors.push('No se pudo generar codigo para la mano de obra')
+      }
       row.Code = generatedCode
-      usedCodes.push(generatedCode)
+      if (generatedCode) usedCodes.push(generatedCode)
     } else if (existingLabor && !cleanString(row.Code)) {
       row.Code = existingLabor.code
     }

@@ -31,7 +31,7 @@ export default function LaborForm({ action, initialData, denominations = [], sub
         </label>
 
         <label className="space-y-2 text-sm font-medium text-zinc-700">
-          Estructura organizacional
+          Estructura ocupacional
           <input
             name="roleName"
             defaultValue={initialData?.roleName ?? ''}

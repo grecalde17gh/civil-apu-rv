@@ -146,8 +146,11 @@ async function buildEquipmentPreviewRows(rows: EquipmentImportRow[], rawValues: 
 
     if (status === 'new' && !cleanString(row.Code)) {
       const generatedCode = assignMissingCatalogCodes([row], usedCodes, 'EQ')[0].Code
+      if (!generatedCode) {
+        errors.push('No se pudo generar codigo para el equipo')
+      }
       row.Code = generatedCode
-      usedCodes.push(generatedCode)
+      if (generatedCode) usedCodes.push(generatedCode)
     } else if (existingEquipment && !cleanString(row.Code)) {
       row.Code = existingEquipment.code
     }

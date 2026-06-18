@@ -178,8 +178,11 @@ async function buildMaterialPreviewRows(rows: MaterialImportRow[], rawValues: Ma
 
     if (status === 'new' && !cleanString(row.Code)) {
       const generatedCode = assignMissingCatalogCodes([row], usedCodes, 'MAT')[0].Code
+      if (!generatedCode) {
+        errors.push('No se pudo generar codigo para el material')
+      }
       row.Code = generatedCode
-      usedCodes.push(generatedCode)
+      if (generatedCode) usedCodes.push(generatedCode)
     } else if (existingMaterial && !cleanString(row.Code)) {
       row.Code = existingMaterial.code
     }

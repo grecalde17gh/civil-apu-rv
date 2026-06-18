@@ -127,6 +127,13 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
   const subtotal = budget.subtotal?.toString() ?? '0.00'
   const ivaAmount = budget.ivaAmount?.toString() ?? '0.00'
   const total = budget.total?.toString() ?? budget.subtotal?.toString() ?? '0.00'
+  const directCostTotal = budget.items.reduce((sum, item) => {
+    const quantity = Number(item.quantity.toString())
+    const directCost = Number(item.directCostSnapshot.toString())
+    return sum + quantity * directCost
+  }, 0)
+  const indirectPercentage = Number(budget.indirectPercentage?.toString() ?? '0')
+  const indirectCostTotal = directCostTotal * (indirectPercentage / 100)
   const consolidation = consolidateBudgetComponents(budget)
   const serializedRubros = rubros.map(serializeRubro)
   const serializedBudgetItems = budget.items.map(serializeBudgetItem)
@@ -242,20 +249,28 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
                 <div className="divide-y divide-slate-200 text-sm">
                   <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
                     <span className="text-slate-600">Costo directo</span>
-                    <span className="font-mono font-semibold tabular-nums text-slate-950">{subtotal}</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{formatCurrency(directCostTotal)}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                    <span className="text-slate-600">Costos indirectos</span>
+                    <span className="text-slate-600">Porcentaje indirectos</span>
                     <span className="font-mono font-semibold tabular-nums text-slate-950">
                       {budget.indirectPercentage?.toString() ?? '0'}%
                     </span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Costos indirectos</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{formatCurrency(indirectCostTotal)}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
+                    <span className="text-slate-600">Total ofertado</span>
+                    <span className="font-mono font-semibold tabular-nums text-slate-950">{subtotal}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
                     <span className="text-slate-600">IVA ({budget.ivaPercentage?.toString() ?? '0'}%)</span>
                     <span className="font-mono font-semibold tabular-nums text-slate-950">{ivaAmount}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_auto] gap-3 bg-blue-50 px-3 py-3">
-                    <span className="font-bold text-blue-950">Total presupuesto</span>
+                    <span className="font-bold text-blue-950">Total incluido IVA</span>
                     <span className="font-mono text-lg font-bold tabular-nums text-blue-950">{total}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
@@ -283,4 +298,11 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
       </div>
     </div>
   )
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString('es-EC', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }

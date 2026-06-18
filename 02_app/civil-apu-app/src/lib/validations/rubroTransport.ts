@@ -4,7 +4,10 @@ import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
+const positiveNumber = z.preprocess(
+  decimalInputPreprocess,
+  z.number().finite().positive('Complete los datos obligatorios del componente antes de agregarlo.'),
+)
 const optionalString = z.string().trim().optional()
 
 export const rubroTransportFormSchema = z.object({

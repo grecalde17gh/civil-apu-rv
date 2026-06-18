@@ -47,7 +47,7 @@ export default function RubroForm({
           </label>
 
           <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Estructura organizacional
+            Estructura ocupacional
             <input
               name="description"
               defaultValue={initialData?.description ?? ''}
@@ -198,7 +198,7 @@ export default function RubroForm({
       </div>
 
       <label className="space-y-2 text-sm font-medium text-zinc-700">
-        Estructura organizacional
+        Estructura ocupacional
         <input
           name="description"
           defaultValue={initialData?.description ?? ''}

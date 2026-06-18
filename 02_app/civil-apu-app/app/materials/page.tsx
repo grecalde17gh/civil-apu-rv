@@ -142,7 +142,7 @@ export default async function MaterialsPage({ searchParams }: PageProps) {
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+                    <th className="min-w-[320px] px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 1</th>
                     <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio 2</th>

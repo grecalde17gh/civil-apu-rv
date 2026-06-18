@@ -21,6 +21,8 @@ export type BudgetExportData = {
     technicalSpecificationSnapshot?: string | null
     unitSnapshot: string
     quantity: DecimalLike
+    directCostSnapshot: DecimalLike
+    indirectCostSnapshot: DecimalLike
     unitPriceSnapshot: DecimalLike
     subtotalSnapshot: DecimalLike
     totalPrice: DecimalLike
@@ -39,7 +41,8 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
   const total = toNumber(budget.total) || subtotal
   const ivaAmount = toNumber(budget.ivaAmount)
   const indirectPercentage = toNumber(budget.indirectPercentage)
-  const indirectAmount = budget.items.reduce((sum, item) => sum + toNumber(item.subtotalSnapshot) - toNumber(item.quantity) * toNumber(item.unitPriceSnapshot), 0)
+  const directAmount = budget.items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.directCostSnapshot), 0)
+  const indirectAmount = budget.items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.indirectCostSnapshot), 0)
 
   addTableSheet(
     workbook,
@@ -53,8 +56,9 @@ export function buildBudgetWorkbook(budget: BudgetExportData, consolidation: Bud
       { field: 'Presupuesto', value: budget.budgetCode ? `${budget.budgetCode} - ${budget.budgetName}` : budget.budgetName },
       { field: 'Fecha', value: budget.createdAt?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10) },
       { field: 'Indirectos', value: `${indirectPercentage}%` },
-      { field: 'Costo directo', value: subtotal },
+      { field: 'Costo directo', value: directAmount },
       { field: 'Valor indirectos', value: indirectAmount },
+      { field: 'Total ofertado', value: subtotal },
       { field: 'IVA', value: ivaAmount },
       { field: 'Total presupuesto', value: total },
     ],

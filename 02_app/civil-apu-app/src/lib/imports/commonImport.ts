@@ -46,8 +46,8 @@ export type CatalogSheetConfig = {
   columns: Record<string, string[]>
 }
 
-function normalizeText(value: string): string {
-  return value
+function normalizeText(value: string | number | boolean): string {
+  return String(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()

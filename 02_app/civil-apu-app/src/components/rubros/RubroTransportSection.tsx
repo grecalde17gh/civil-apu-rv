@@ -9,12 +9,13 @@ type RubroTransportWithDenomination = RubroTransport & {
 
 type RubroTransportSectionProps = {
   rubroId: string
+  budgetId?: string
   rubroTransport: RubroTransportWithDenomination[]
   denominations?: IpcoDenomination[]
   rubroDirectTotal: number
 }
 
-export default function RubroTransportSection({ rubroId, rubroTransport, denominations = [], rubroDirectTotal }: RubroTransportSectionProps) {
+export default function RubroTransportSection({ rubroId, budgetId, rubroTransport, denominations = [], rubroDirectTotal }: RubroTransportSectionProps) {
   const denominationOptions = denominations.map((denomination) => ({
     id: denomination.id,
     label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
@@ -31,6 +32,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
 
         <form action={addRubroTransportAction} className="grid gap-2 lg:grid-cols-[110px_minmax(220px,1fr)_90px_95px_110px_minmax(220px,1fr)_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
+          {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Codigo
@@ -75,7 +77,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
@@ -126,6 +128,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
                         <form action={updateRubroTransportAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
                           <input type="hidden" name="id" value={line.id} />
                           <input type="hidden" name="rubroId" value={rubroId} />
+                          {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                           <label className="text-xs font-medium text-slate-600">
                             Codigo
                             <input name="code" defaultValue={line.code ?? ''} placeholder="TR-001" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
@@ -162,6 +165,7 @@ export default function RubroTransportSection({ rubroId, rubroTransport, denomin
                       <form action={deleteRubroTransportAction} className="inline">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
+                        {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                         <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
                           Eliminar
                         </button>

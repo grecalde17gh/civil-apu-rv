@@ -3,9 +3,10 @@ import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().positive())
-
-const nonNegativeNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
+const positiveNumber = z.preprocess(
+  decimalInputPreprocess,
+  z.number().finite().positive('Complete los datos obligatorios del componente antes de agregarlo.'),
+)
 
 export const rubroEquipmentFormSchema = z.object({
   rubroId: nonEmptyString,
@@ -24,8 +25,8 @@ export function validateRubroEquipmentInput(data: unknown): RubroEquipmentFormIn
 export const rubroEquipmentUpdateSchema = z.object({
   id: nonEmptyString,
   rubroId: nonEmptyString,
-  equipmentQuantity: nonNegativeNumber,
-  timeRequired: nonNegativeNumber,
+  equipmentQuantity: positiveNumber,
+  timeRequired: positiveNumber,
   notes: z.string().trim().optional(),
 })
 

@@ -3,9 +3,11 @@ import { decimalInputPreprocess } from './decimalInput'
 
 const nonEmptyString = z.string().trim().min(1)
 
-const positiveNumber = z.preprocess(decimalInputPreprocess, z.number().finite().positive())
+const positiveNumber = z.preprocess(
+  decimalInputPreprocess,
+  z.number().finite().positive('Complete los datos obligatorios del componente antes de agregarlo.'),
+)
 
-const nonNegativeNumber = z.preprocess(decimalInputPreprocess, z.number().finite().nonnegative())
 const priceOption = z.preprocess(decimalInputPreprocess, z.number().int().min(1).max(3))
 
 export const rubroMaterialFormSchema = z.object({
@@ -25,7 +27,7 @@ export function validateRubroMaterialInput(data: unknown): RubroMaterialFormInpu
 export const rubroMaterialUpdateSchema = z.object({
   id: nonEmptyString,
   rubroId: nonEmptyString,
-  quantity: nonNegativeNumber,
+  quantity: positiveNumber,
   unit: z.string().trim().optional(),
   priceOption: priceOption.optional(),
   notes: z.string().trim().optional(),

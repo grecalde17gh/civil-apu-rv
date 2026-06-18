@@ -8,12 +8,13 @@ import InlineEditableCell from './InlineEditableCell'
 
 type RubroMaterialsSectionProps = {
   rubroId: string
+  budgetId?: string
   materials: Array<Material & { denomination?: IpcoDenomination | null }>
   rubroMaterials: RubroMaterialWithMaterial[]
   rubroDirectTotal: number
 }
 
-export default function RubroMaterialsSection({ rubroId, materials, rubroMaterials, rubroDirectTotal }: RubroMaterialsSectionProps) {
+export default function RubroMaterialsSection({ rubroId, budgetId, materials, rubroMaterials, rubroDirectTotal }: RubroMaterialsSectionProps) {
   const materialOptions = materials.map((material) => ({
     id: material.id,
     label: formatCatalogOption(
@@ -33,6 +34,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
 
         <form action={addRubroMaterialAction} className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_110px_110px_130px]">
           <input type="hidden" name="rubroId" value={rubroId} />
+          {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
 
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Material
@@ -71,7 +73,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
           <thead className="bg-slate-100">
             <tr>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Codigo</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura organizacional</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Estructura ocupacional</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Unidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Cantidad</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio aplicado</th>
@@ -128,6 +130,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                       <form action={updateRubroMaterialAction} className="flex items-center gap-2">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
+                        {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                         <input type="hidden" name="quantity" value={line.quantity.toString()} />
                         <input type="hidden" name="unit" value={line.unit ?? line.material.unit} />
                         <input type="hidden" name="notes" value={line.notes ?? ''} />
@@ -168,6 +171,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                       <form action={updateRubroMaterialAction} className="mt-3 grid min-w-64 gap-2 rounded border border-slate-200 bg-white p-2 shadow-sm">
                         <input type="hidden" name="id" value={line.id} />
                         <input type="hidden" name="rubroId" value={rubroId} />
+                        {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                         <label className="text-xs font-medium text-slate-600">
                           Cantidad
                           <input name="quantity" defaultValue={line.quantity.toString()} required inputMode="decimal" className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
@@ -198,6 +202,7 @@ export default function RubroMaterialsSection({ rubroId, materials, rubroMateria
                     <form action={deleteRubroMaterialAction} className="inline">
                       <input type="hidden" name="id" value={line.id} />
                       <input type="hidden" name="rubroId" value={rubroId} />
+                      {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                       <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
                         Eliminar
                       </button>

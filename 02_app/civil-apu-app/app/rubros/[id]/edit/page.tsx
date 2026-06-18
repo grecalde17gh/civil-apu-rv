@@ -26,12 +26,13 @@ type RubroEditPageProps = {
   }>
   searchParams?: Promise<{
     budgetId?: string
+    componentError?: string
   }>
 }
 
 export default async function EditRubroPage({ params, searchParams }: RubroEditPageProps) {
   const { id } = await params
-  const { budgetId } = (await searchParams) ?? {}
+  const { budgetId, componentError } = (await searchParams) ?? {}
   const rubro = await getRubroById(id)
 
   if (!rubro) {
@@ -152,6 +153,12 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               Rendimiento del rubro sin valor mayor a cero. Mano de obra y equipos conservaran el rendimiento/horas de cada linea.
             </div>
           ) : null}
+
+          {componentError ? (
+            <div className="border-t border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-950">
+              {componentError}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -173,9 +180,16 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               ))}
             </nav>
 
-            <RubroMaterialsSection rubroId={id} materials={materials} rubroMaterials={rubroMaterials} rubroDirectTotal={totals.directCost} />
+            <RubroMaterialsSection
+              rubroId={id}
+              budgetId={budgetId}
+              materials={materials}
+              rubroMaterials={rubroMaterials}
+              rubroDirectTotal={totals.directCost}
+            />
             <RubroLaborSection
               rubroId={id}
+              budgetId={budgetId}
               laborItems={laborItems}
               rubroLabor={rubroLabor}
               rubroPerformanceValue={initialData.performanceValue ?? null}
@@ -183,12 +197,19 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             />
             <RubroEquipmentSection
               rubroId={id}
+              budgetId={budgetId}
               equipmentItems={equipmentItems}
               rubroEquipment={rubroEquipment}
               rubroPerformanceValue={initialData.performanceValue ?? null}
               rubroDirectTotal={totals.directCost}
             />
-            <RubroTransportSection rubroId={id} rubroTransport={rubroTransport} denominations={denominations} rubroDirectTotal={totals.directCost} />
+            <RubroTransportSection
+              rubroId={id}
+              budgetId={budgetId}
+              rubroTransport={rubroTransport}
+              denominations={denominations}
+              rubroDirectTotal={totals.directCost}
+            />
             <RubroUsageContext contexts={orderedUsageContexts} />
           </main>
 

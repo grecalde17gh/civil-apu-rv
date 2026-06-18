@@ -36,8 +36,8 @@ function normalizeDecimal(value: string): { ok: true; value: string } | { ok: fa
     return { ok: false, message: 'El valor es obligatorio' }
   }
 
-  if (!/^\d+(\.\d+)?$/.test(normalized)) {
-    return { ok: false, message: 'Ingrese un numero mayor o igual a cero' }
+  if (!/^\d+(\.\d+)?$/.test(normalized) || Number(normalized) <= 0) {
+    return { ok: false, message: 'Ingrese un numero mayor que cero' }
   }
 
   return { ok: true, value: normalized }
