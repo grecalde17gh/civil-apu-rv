@@ -82,6 +82,7 @@ describe('excel export helpers', () => {
           rubro: {
             materials: [
               {
+                id: 'rubro-material-1',
                 materialId: 'material-1',
                 quantity: 3,
                 unitCostSnapshot: 4,
@@ -96,6 +97,7 @@ describe('excel export helpers', () => {
             ],
             labor: [
               {
+                id: 'rubro-labor-1',
                 laborItemId: 'labor-1',
                 workerQuantity: 1,
                 hourlyCostSnapshot: 5,
@@ -104,13 +106,14 @@ describe('excel export helpers', () => {
             ],
             equipment: [
               {
+                id: 'rubro-equipment-1',
                 equipmentItemId: 'equipment-1',
                 equipmentQuantity: 1,
                 rateSnapshot: 2,
                 equipmentItem: { code: 'EQ-001', description: 'Concretera' },
               },
             ],
-            transport: [{ code: 'TR-001', description: 'Acarreo', unit: 'm3', quantity: 1, unitCost: 1 }],
+            transport: [{ id: 'rubro-transport-1', code: 'TR-001', description: 'Acarreo', unit: 'm3', quantity: 1, unitCost: 1 }],
           },
         },
       ],

@@ -6,11 +6,22 @@ import { copyBudget, createBudget, updateBudget } from '@/src/lib/db/budgets'
 import { getProjectById } from '@/src/lib/db/projects'
 import { validateBudgetItemInput, validateBudgetItemQuantityInput } from '@/src/lib/validations/budget'
 import { getRubroById } from '@/src/lib/db/rubros'
-import { createBudgetItem, recalculateBudgetTotals, getBudgetItemsByBudgetId, deleteBudgetItem, getBudgetByIdWithProject, updateBudgetItemQuantity } from '@/src/lib/db/budgets'
+import {
+  createBudgetItem,
+  recalculateBudgetTotals,
+  getBudgetItemsByBudgetId,
+  deleteBudgetItem,
+  getBudgetByIdWithProject,
+  updateBudgetItemQuantity,
+  updateBudgetIpcoOverride,
+  restoreBudgetIpcoOverride,
+  saveBudgetIpcoOverrideChanges,
+} from '@/src/lib/db/budgets'
 import { calculateBudgetItemSnapshots } from '@/src/lib/calculations/budget'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 import { updateBudgetSchedule } from '@/src/lib/db/budgetSchedule'
 import { validateBudgetScheduleInput } from '@/src/lib/validations/budgetSchedule'
+import type { BudgetIpcoComponentType } from '@prisma/client'
 
 export type BudgetItemActionState = {
   ok: boolean
@@ -21,6 +32,8 @@ export type BudgetScheduleActionState = {
   ok: boolean
   message: string | null
 }
+
+const budgetIpcoComponentTypes = new Set<BudgetIpcoComponentType>(['MATERIAL', 'LABOR', 'EQUIPMENT', 'TRANSPORT'])
 
 export async function createBudgetAction(formData: FormData) {
   const data = Object.fromEntries(formData)
@@ -242,4 +255,108 @@ export async function updateBudgetScheduleAction(
       message: error instanceof Error ? error.message : 'No se pudo guardar el cronograma valorado.',
     }
   }
+}
+
+function parseBudgetIpcoForm(formData: FormData): {
+  budgetId: string
+  projectId: string
+  componentType: BudgetIpcoComponentType
+  componentIds: string[]
+  tab: string
+} {
+  const budgetId = formData.get('budgetId')
+  const projectId = formData.get('projectId')
+  const componentType = formData.get('componentType')
+  const componentIdsValue = formData.get('componentIds')
+  const tab = formData.get('tab')
+
+  if (typeof budgetId !== 'string' || typeof projectId !== 'string') {
+    throw new Error('Presupuesto no encontrado')
+  }
+  if (typeof componentType !== 'string' || !budgetIpcoComponentTypes.has(componentType as BudgetIpcoComponentType)) {
+    throw new Error('Tipo de componente IPCO invalido')
+  }
+  if (typeof componentIdsValue !== 'string') {
+    throw new Error('Componente IPCO no encontrado')
+  }
+
+  const componentIds = componentIdsValue
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+  if (componentIds.length === 0) {
+    throw new Error('Componente IPCO no encontrado')
+  }
+
+  return {
+    budgetId,
+    projectId,
+    componentType: componentType as BudgetIpcoComponentType,
+    componentIds,
+    tab: typeof tab === 'string' ? tab : 'presupuesto',
+  }
+}
+
+export async function updateBudgetIpcoOverrideAction(formData: FormData) {
+  const parsed = parseBudgetIpcoForm(formData)
+  const denominationId = formData.get('denominationId')
+
+  if (typeof denominationId !== 'string' || denominationId.trim() === '') {
+    throw new Error('Selecciona una Denominacion IPCO')
+  }
+
+  await updateBudgetIpcoOverride({
+    budgetId: parsed.budgetId,
+    componentType: parsed.componentType,
+    componentIds: parsed.componentIds,
+    denominationId,
+  })
+
+  redirect(`/projects/${parsed.projectId}/budgets/${parsed.budgetId}/edit?tab=${parsed.tab}`)
+}
+
+export async function restoreBudgetIpcoOverrideAction(formData: FormData) {
+  const parsed = parseBudgetIpcoForm(formData)
+
+  await restoreBudgetIpcoOverride({
+    budgetId: parsed.budgetId,
+    componentType: parsed.componentType,
+    componentIds: parsed.componentIds,
+  })
+
+  redirect(`/projects/${parsed.projectId}/budgets/${parsed.budgetId}/edit?tab=${parsed.tab}`)
+}
+
+export async function saveBudgetIpcoOverridesAction(formData: FormData) {
+  const budgetId = formData.get('budgetId')
+  const projectId = formData.get('projectId')
+  const tab = formData.get('tab')
+  const changesRaw = formData.get('changes')
+
+  if (typeof budgetId !== 'string' || typeof projectId !== 'string') {
+    throw new Error('Presupuesto no encontrado')
+  }
+  if (typeof changesRaw !== 'string') {
+    throw new Error('Cambios IPCO invalidos')
+  }
+
+  const changes = JSON.parse(changesRaw) as Array<{
+    componentType: BudgetIpcoComponentType
+    componentIds: string[]
+    denominationId: string | null
+    originalDenominationId: string | null
+  }>
+
+  const validChanges = changes.filter((change) =>
+    budgetIpcoComponentTypes.has(change.componentType) &&
+    Array.isArray(change.componentIds) &&
+    change.componentIds.length > 0,
+  )
+
+  if (validChanges.length > 0) {
+    await saveBudgetIpcoOverrideChanges({ budgetId, changes: validChanges })
+  }
+
+  redirect(`/projects/${projectId}/budgets/${budgetId}/edit?tab=${typeof tab === 'string' ? tab : 'presupuesto'}`)
 }

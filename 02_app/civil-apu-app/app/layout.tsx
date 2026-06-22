@@ -25,6 +25,8 @@ const navLinks = [
   { href: "/rubros", label: "Rubros" },
   { href: "/projects", label: "Proyectos" },
   { href: "/imports/materials", label: "Importar" },
+  { href: "/imports/ipco-classification", label: "IPCO" },
+  { href: "/admin/ipco-denominations", label: "Admin IPCO" },
 ];
 
 export default function RootLayout({

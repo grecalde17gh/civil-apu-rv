@@ -1,15 +1,26 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BudgetForm from '@/src/components/budgets/BudgetForm'
+import BudgetDenominationsTable from '@/src/components/budgets/BudgetDenominationsTable'
 import BudgetConsolidationTables, { GeneralComponentsTable } from '@/src/components/budgets/BudgetConsolidationTables'
 import BudgetScheduleTable, { type BudgetScheduleRow } from '@/src/components/budgets/BudgetScheduleTable'
 import { consolidateBudgetComponents } from '@/src/lib/calculations/budgetConsolidation'
 import { getBudgetScheduleForEdit } from '@/src/lib/db/budgetSchedule'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
-import { updateBudgetAction, addBudgetItemFormAction, deleteBudgetItemAction, copyBudgetAction, updateBudgetItemQuantityAction, updateBudgetScheduleAction } from '../../actions'
+import {
+  updateBudgetAction,
+  addBudgetItemFormAction,
+  deleteBudgetItemAction,
+  copyBudgetAction,
+  updateBudgetItemQuantityAction,
+  updateBudgetScheduleAction,
+  restoreBudgetIpcoOverrideAction,
+  saveBudgetIpcoOverridesAction,
+} from '../../actions'
 import BudgetItemForm, { type BudgetItemFormRubro } from '@/src/components/budgets/BudgetItemForm'
 import BudgetItemsTable, { type BudgetItemsTableItem } from '@/src/components/budgets/BudgetItemsTable'
 import { getRubros } from '@/src/lib/db/rubros'
+import { getIpcoDenominations } from '@/src/lib/db/denominations'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +41,7 @@ const tabs = [
   { key: 'mano-obra', label: 'Mano de obra consolidada' },
   { key: 'equipos', label: 'Equipos consolidados' },
   { key: 'transporte', label: 'Transporte consolidado' },
+  { key: 'denominaciones', label: 'Denominaciones' },
   { key: 'cronograma', label: 'Cronograma valorado' },
 ] as const
 
@@ -124,12 +136,14 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
   const { projectId, budgetId } = await params
   const { tab, denomination } = (await searchParams) ?? {}
   const activeTab = getActiveTab(tab)
-  const budget = await getBudgetByIdForEdit(budgetId)
-  const rubros = await getRubros()
+  const budget = await getBudgetByIdForEdit(budgetId, projectId)
 
-  if (!budget || budget.projectId !== projectId) {
+  if (!budget) {
     notFound()
   }
+
+  const rubros = await getRubros()
+  const denominations = await getIpcoDenominations()
 
   const initialData = {
     code: budget.code ?? undefined,
@@ -154,6 +168,14 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
   const indirectPercentage = Number(budget.indirectPercentage?.toString() ?? '0')
   const indirectCostTotal = directCostTotal * (indirectPercentage / 100)
   const consolidation = consolidateBudgetComponents(budget)
+  const ipcoEditorProps = {
+    budgetId,
+    projectId,
+    denominations,
+    currentTab: activeTab,
+    saveIpcoAction: saveBudgetIpcoOverridesAction,
+    restoreIpcoAction: restoreBudgetIpcoOverrideAction,
+  }
   const serializedRubros = rubros.map(serializeRubro)
   const serializedBudgetItems = budget.items.map(serializeBudgetItem)
   const schedule = activeTab === 'cronograma' ? await getBudgetScheduleForEdit(budgetId) : null
@@ -305,7 +327,11 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
               </aside>
             </div>
 
-            <GeneralComponentsTable consolidation={consolidation} denominationFilter={denomination ?? ''} />
+            <GeneralComponentsTable
+              consolidation={consolidation}
+              denominationFilter={denomination ?? ''}
+              ipcoEditor={ipcoEditorProps}
+            />
           </div>
         ) : activeTab === 'cronograma' && schedule ? (
           <div className="mt-4">
@@ -317,11 +343,20 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
               action={updateBudgetScheduleAction}
             />
           </div>
+        ) : activeTab === 'denominaciones' ? (
+          <div className="mt-4">
+            <BudgetDenominationsTable
+              consolidation={consolidation}
+              directCostTotal={directCostTotal}
+              {...ipcoEditorProps}
+            />
+          </div>
         ) : (
           <div className="mt-4">
             <BudgetConsolidationTables
               consolidation={consolidation}
               section={getConsolidationSection(activeTab)}
+              {...ipcoEditorProps}
             />
           </div>
         )}

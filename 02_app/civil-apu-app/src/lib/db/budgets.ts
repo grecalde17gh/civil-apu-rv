@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import type { Budget, BudgetStatus, BudgetItem, Prisma } from '@prisma/client'
+import type { Budget, BudgetStatus, BudgetItem, BudgetIpcoComponentType, Prisma } from '@prisma/client'
 import { calculateBudgetGrandTotal, calculateBudgetItemSnapshots, calculateBudgetItemTotal, calculateTaxAmount } from '@/src/lib/calculations/budget'
 import { buildCopyName, generateCopyCode } from './copy'
 
@@ -23,9 +23,12 @@ export async function getBudgetByIdWithProject(budgetId: string) {
   })
 }
 
-export async function getBudgetByIdForEdit(budgetId: string) {
-  return prisma.budget.findUnique({
-    where: { id: budgetId },
+export async function getBudgetByIdForEdit(budgetId: string, projectId?: string) {
+  return prisma.budget.findFirst({
+    where: {
+      id: budgetId,
+      ...(projectId ? { projectId } : {}),
+    },
     include: {
       project: true,
       items: {
@@ -47,6 +50,12 @@ export async function getBudgetByIdForEdit(budgetId: string) {
               },
             },
           },
+        },
+      },
+      ipcoOverrides: {
+        include: {
+          originalDenomination: true,
+          overrideDenomination: true,
         },
       },
     },
@@ -77,24 +86,82 @@ export async function createBudgetItem(data: {
   totalPrice: number
   notes?: string
 }): Promise<BudgetItem> {
-  return prisma.budgetItem.create({
-    data: {
-      budgetId: data.budgetId,
-      rubroId: data.rubroId,
-      itemNumber: data.itemNumber,
-      rubroCodeSnapshot: data.rubroCodeSnapshot,
-      descriptionSnapshot: data.descriptionSnapshot,
-      technicalSpecificationSnapshot: data.technicalSpecificationSnapshot ?? undefined,
-      unitSnapshot: data.unitSnapshot,
-      quantity: data.quantity,
-      indirectPercentageApplied: data.indirectPercentageApplied,
-      directCostSnapshot: data.directCostSnapshot,
-      indirectCostSnapshot: data.indirectCostSnapshot,
-      unitPriceSnapshot: data.unitPriceSnapshot,
-      subtotalSnapshot: data.subtotalSnapshot,
-      totalPrice: data.totalPrice,
-      notes: data.notes ?? undefined,
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.budgetItem.create({
+      data: {
+        budgetId: data.budgetId,
+        rubroId: data.rubroId,
+        itemNumber: data.itemNumber,
+        rubroCodeSnapshot: data.rubroCodeSnapshot,
+        descriptionSnapshot: data.descriptionSnapshot,
+        technicalSpecificationSnapshot: data.technicalSpecificationSnapshot ?? undefined,
+        unitSnapshot: data.unitSnapshot,
+        quantity: data.quantity,
+        indirectPercentageApplied: data.indirectPercentageApplied,
+        directCostSnapshot: data.directCostSnapshot,
+        indirectCostSnapshot: data.indirectCostSnapshot,
+        unitPriceSnapshot: data.unitPriceSnapshot,
+        subtotalSnapshot: data.subtotalSnapshot,
+        totalPrice: data.totalPrice,
+        notes: data.notes ?? undefined,
+      },
+    })
+
+    await createMissingBudgetIpcoOverridesForRubro(tx, data.budgetId, data.rubroId)
+
+    return item
+  })
+}
+
+async function createMissingBudgetIpcoOverridesForRubro(
+  tx: Prisma.TransactionClient,
+  budgetId: string,
+  rubroId: string,
+): Promise<void> {
+  const rubro = await tx.rubro.findUnique({
+    where: { id: rubroId },
+    include: {
+      materials: { include: { material: { select: { denominationId: true } } } },
+      labor: { include: { laborItem: { select: { denominationId: true } } } },
+      equipment: { include: { equipmentItem: { select: { denominationId: true } } } },
+      transport: true,
     },
+  })
+
+  if (!rubro) return
+
+  const rows = [
+    ...rubro.materials.map((line) => ({
+      budgetId,
+      componentType: 'MATERIAL' as const,
+      componentId: line.id,
+      originalDenominationId: line.material.denominationId,
+    })),
+    ...rubro.labor.map((line) => ({
+      budgetId,
+      componentType: 'LABOR' as const,
+      componentId: line.id,
+      originalDenominationId: line.laborItem.denominationId,
+    })),
+    ...rubro.equipment.map((line) => ({
+      budgetId,
+      componentType: 'EQUIPMENT' as const,
+      componentId: line.id,
+      originalDenominationId: line.equipmentItem.denominationId,
+    })),
+    ...rubro.transport.map((line) => ({
+      budgetId,
+      componentType: 'TRANSPORT' as const,
+      componentId: line.id,
+      originalDenominationId: line.denominationId,
+    })),
+  ]
+
+  if (rows.length === 0) return
+
+  await tx.budgetIpcoOverride.createMany({
+    data: rows,
+    skipDuplicates: true,
   })
 }
 
@@ -228,7 +295,7 @@ export async function updateBudget(budgetId: string, data: {
 export async function copyBudget(budgetId: string): Promise<Budget> {
   const budget = await prisma.budget.findUnique({
     where: { id: budgetId },
-    include: { items: true },
+    include: { items: true, ipcoOverrides: true },
   })
 
   if (!budget) {
@@ -279,6 +346,14 @@ export async function copyBudget(budgetId: string): Promise<Budget> {
             notes: item.notes,
           })),
         },
+        ipcoOverrides: {
+          create: budget.ipcoOverrides.map((override) => ({
+            componentType: override.componentType,
+            componentId: override.componentId,
+            originalDenominationId: override.originalDenominationId,
+            overrideDenominationId: override.overrideDenominationId,
+          })),
+        },
       },
     })
 
@@ -290,5 +365,102 @@ export async function copyBudget(budgetId: string): Promise<Budget> {
     }
 
     return updated
+  })
+}
+
+export async function updateBudgetIpcoOverride(params: {
+  budgetId: string
+  componentType: BudgetIpcoComponentType
+  componentIds: string[]
+  denominationId: string
+}): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    for (const componentId of params.componentIds) {
+      await tx.budgetIpcoOverride.upsert({
+        where: {
+          budgetId_componentType_componentId: {
+            budgetId: params.budgetId,
+            componentType: params.componentType,
+            componentId,
+          },
+        },
+        create: {
+          budgetId: params.budgetId,
+          componentType: params.componentType,
+          componentId,
+          overrideDenominationId: params.denominationId,
+        },
+        update: {
+          overrideDenominationId: params.denominationId,
+        },
+      })
+    }
+  })
+}
+
+export async function restoreBudgetIpcoOverride(params: {
+  budgetId: string
+  componentType: BudgetIpcoComponentType
+  componentIds: string[]
+}): Promise<void> {
+  await prisma.budgetIpcoOverride.updateMany({
+    where: {
+      budgetId: params.budgetId,
+      componentType: params.componentType,
+      componentId: { in: params.componentIds },
+    },
+    data: {
+      overrideDenominationId: null,
+    },
+  })
+}
+
+export async function saveBudgetIpcoOverrideChanges(params: {
+  budgetId: string
+  changes: Array<{
+    componentType: BudgetIpcoComponentType
+    componentIds: string[]
+    denominationId: string | null
+    originalDenominationId: string | null
+  }>
+}): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    for (const change of params.changes) {
+      const shouldRestore = !change.denominationId || change.denominationId === change.originalDenominationId
+
+      for (const componentId of change.componentIds) {
+        if (shouldRestore) {
+          await tx.budgetIpcoOverride.updateMany({
+            where: {
+              budgetId: params.budgetId,
+              componentType: change.componentType,
+              componentId,
+            },
+            data: { overrideDenominationId: null },
+          })
+          continue
+        }
+
+        await tx.budgetIpcoOverride.upsert({
+          where: {
+            budgetId_componentType_componentId: {
+              budgetId: params.budgetId,
+              componentType: change.componentType,
+              componentId,
+            },
+          },
+          create: {
+            budgetId: params.budgetId,
+            componentType: change.componentType,
+            componentId,
+            originalDenominationId: change.originalDenominationId,
+            overrideDenominationId: change.denominationId,
+          },
+          update: {
+            overrideDenominationId: change.denominationId,
+          },
+        })
+      }
+    }
   })
 }

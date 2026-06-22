@@ -1,17 +1,22 @@
 type DecimalInput = number | string | { toString(): string }
 
 type DenominationInput = {
+  id?: string | null
   code?: string | null
   name?: string | null
 } | null | undefined
 
+type BudgetIpcoComponentType = 'MATERIAL' | 'LABOR' | 'EQUIPMENT' | 'TRANSPORT'
+
 type CatalogMetadataInput = {
+  denominationId?: string | null
   cpc?: string | null
   vae?: DecimalInput | null
   denomination?: DenominationInput
 }
 
 type MaterialLineInput = {
+  id: string
   materialId: string
   quantity: DecimalInput
   unit?: string | null
@@ -26,6 +31,7 @@ type MaterialLineInput = {
 }
 
 type LaborLineInput = {
+  id: string
   laborItemId: string
   workerQuantity: DecimalInput
   hourlyCostSnapshot: DecimalInput
@@ -36,6 +42,7 @@ type LaborLineInput = {
 }
 
 type EquipmentLineInput = {
+  id: string
   equipmentItemId: string
   equipmentQuantity: DecimalInput
   rateSnapshot: DecimalInput
@@ -46,7 +53,8 @@ type EquipmentLineInput = {
 }
 
 type TransportLineInput = {
-  id?: string
+  id: string
+  denominationId?: string | null
   code?: string | null
   description: string
   unit?: string | null
@@ -56,6 +64,7 @@ type TransportLineInput = {
 }
 
 export type BudgetConsolidationInput = {
+  ipcoOverrides?: BudgetIpcoOverrideInput[]
   items: Array<{
     quantity: DecimalInput
     rubro?: {
@@ -65,6 +74,31 @@ export type BudgetConsolidationInput = {
       transport?: TransportLineInput[]
     } | null
   }>
+}
+
+type BudgetIpcoOverrideInput = {
+  componentType: BudgetIpcoComponentType
+  componentId: string
+  originalDenomination?: DenominationInput
+  overrideDenomination?: DenominationInput
+}
+
+type EffectiveDenomination = {
+  id: string
+  originalId: string
+  label: string
+  originalLabel: string
+  isOverride: boolean
+}
+
+type ConsolidatedIpcoMetadata = {
+  componentType: BudgetIpcoComponentType
+  componentIds: string[]
+  originalDenominationId: string
+  denominationId: string
+  denomination: string
+  originalDenomination: string
+  isDenominationOverride: boolean
 }
 
 export type ConsolidatedMaterial = {
@@ -79,8 +113,7 @@ export type ConsolidatedMaterial = {
   usesCategory2: boolean
   cpc: string
   vae: string
-  denomination: string
-}
+} & ConsolidatedIpcoMetadata
 
 export type ConsolidatedLabor = {
   key: string
@@ -92,8 +125,7 @@ export type ConsolidatedLabor = {
   totalCost: number
   cpc: string
   vae: string
-  denomination: string
-}
+} & ConsolidatedIpcoMetadata
 
 export type ConsolidatedEquipment = ConsolidatedLabor
 
@@ -108,8 +140,7 @@ export type ConsolidatedTransport = {
   totalCost: number
   cpc: string
   vae: string
-  denomination: string
-}
+} & ConsolidatedIpcoMetadata
 
 export type BudgetConsolidation = {
   materials: ConsolidatedMaterial[]
@@ -158,11 +189,52 @@ function formatDenomination(denomination: DenominationInput): string {
   return [denomination.code, denomination.name].filter(Boolean).join(' - ')
 }
 
+function denominationKey(denomination: EffectiveDenomination): string {
+  return denomination.id || denomination.label || 'sin-ipco'
+}
+
+function buildOverrideMap(overrides: BudgetIpcoOverrideInput[] | undefined): Map<string, BudgetIpcoOverrideInput> {
+  const map = new Map<string, BudgetIpcoOverrideInput>()
+
+  for (const override of overrides ?? []) {
+    map.set(`${override.componentType}:${override.componentId}`, override)
+  }
+
+  return map
+}
+
+function getEffectiveDenomination(
+  overrideMap: Map<string, BudgetIpcoOverrideInput>,
+  componentType: BudgetIpcoComponentType,
+  componentId: string,
+  catalogDenomination: DenominationInput,
+): EffectiveDenomination {
+  const override = overrideMap.get(`${componentType}:${componentId}`)
+  const original = override?.originalDenomination ?? catalogDenomination
+  const effective = override?.overrideDenomination ?? original
+
+  return {
+    id: effective?.id ?? '',
+    originalId: original?.id ?? '',
+    label: formatDenomination(effective),
+    originalLabel: formatDenomination(original),
+    isOverride: Boolean(override?.overrideDenomination),
+  }
+}
+
+function mergeIpcoMetadata(target: ConsolidatedIpcoMetadata, componentId: string, denomination: EffectiveDenomination) {
+  if (!target.componentIds.includes(componentId)) {
+    target.componentIds.push(componentId)
+  }
+  target.isDenominationOverride = target.isDenominationOverride || denomination.isOverride
+}
+
 export function consolidateBudgetComponents(budget: BudgetConsolidationInput): BudgetConsolidation {
   const materials = new Map<string, ConsolidatedMaterial>()
   const labor = new Map<string, ConsolidatedLabor>()
   const equipment = new Map<string, ConsolidatedEquipment>()
   const transport = new Map<string, ConsolidatedTransport>()
+  const overrideMap = buildOverrideMap(budget.ipcoOverrides)
 
   for (const item of budget.items) {
     const budgetQuantity = toNumber(item.quantity)
@@ -175,14 +247,20 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
       const unitCost = toNumber(line.unitCostSnapshot)
       const totalCost = roundMoney(quantity * unitCost)
       const material = line.material
-      const existing = materials.get(line.materialId)
+      const denomination = getEffectiveDenomination(overrideMap, 'MATERIAL', line.id, material?.denomination)
+      const key = `${line.materialId}|${denominationKey(denomination)}`
+      const existing = materials.get(key)
 
       if (existing) {
         existing.totalQuantity = roundQuantity(existing.totalQuantity + quantity)
         existing.totalCost = roundMoney(existing.totalCost + totalCost)
+        mergeIpcoMetadata(existing, line.id, denomination)
       } else {
-        materials.set(line.materialId, {
-          key: line.materialId,
+        materials.set(key, {
+          key,
+          componentType: 'MATERIAL',
+          componentIds: [line.id],
+          originalDenominationId: denomination.originalId,
           code: material?.code ?? '-',
           description: material?.description ?? 'Material sin descripcion',
           unit: line.unit ?? material?.unit ?? '-',
@@ -193,7 +271,10 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           usesCategory2: material?.usesCategory2 ?? false,
           cpc: material?.cpc ?? '',
           vae: formatOptionalDecimal(material?.vae),
-          denomination: formatDenomination(material?.denomination),
+          denominationId: denomination.id,
+          denomination: denomination.label,
+          originalDenomination: denomination.originalLabel,
+          isDenominationOverride: denomination.isOverride,
         })
       }
     }
@@ -203,14 +284,20 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
       const unitCost = toNumber(line.hourlyCostSnapshot)
       const totalCost = roundMoney(quantity * unitCost)
       const itemLabor = line.laborItem
-      const existing = labor.get(line.laborItemId)
+      const denomination = getEffectiveDenomination(overrideMap, 'LABOR', line.id, itemLabor?.denomination)
+      const key = `${line.laborItemId}|${denominationKey(denomination)}`
+      const existing = labor.get(key)
 
       if (existing) {
         existing.totalQuantity = roundQuantity(existing.totalQuantity + quantity)
         existing.totalCost = roundMoney(existing.totalCost + totalCost)
+        mergeIpcoMetadata(existing, line.id, denomination)
       } else {
-        labor.set(line.laborItemId, {
-          key: line.laborItemId,
+        labor.set(key, {
+          key,
+          componentType: 'LABOR',
+          componentIds: [line.id],
+          originalDenominationId: denomination.originalId,
           code: itemLabor?.code ?? '-',
           description: itemLabor?.roleName ?? 'Mano de obra sin descripcion',
           unit: 'hora',
@@ -219,7 +306,10 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalCost,
           cpc: itemLabor?.cpc ?? '',
           vae: formatOptionalDecimal(itemLabor?.vae),
-          denomination: formatDenomination(itemLabor?.denomination),
+          denominationId: denomination.id,
+          denomination: denomination.label,
+          originalDenomination: denomination.originalLabel,
+          isDenominationOverride: denomination.isOverride,
         })
       }
     }
@@ -229,14 +319,20 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
       const unitCost = toNumber(line.rateSnapshot)
       const totalCost = roundMoney(quantity * unitCost)
       const itemEquipment = line.equipmentItem
-      const existing = equipment.get(line.equipmentItemId)
+      const denomination = getEffectiveDenomination(overrideMap, 'EQUIPMENT', line.id, itemEquipment?.denomination)
+      const key = `${line.equipmentItemId}|${denominationKey(denomination)}`
+      const existing = equipment.get(key)
 
       if (existing) {
         existing.totalQuantity = roundQuantity(existing.totalQuantity + quantity)
         existing.totalCost = roundMoney(existing.totalCost + totalCost)
+        mergeIpcoMetadata(existing, line.id, denomination)
       } else {
-        equipment.set(line.equipmentItemId, {
-          key: line.equipmentItemId,
+        equipment.set(key, {
+          key,
+          componentType: 'EQUIPMENT',
+          componentIds: [line.id],
+          originalDenominationId: denomination.originalId,
           code: itemEquipment?.code ?? '-',
           description: itemEquipment?.description ?? 'Equipo sin descripcion',
           unit: 'hora',
@@ -245,7 +341,10 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalCost,
           cpc: itemEquipment?.cpc ?? '',
           vae: formatOptionalDecimal(itemEquipment?.vae),
-          denomination: formatDenomination(itemEquipment?.denomination),
+          denominationId: denomination.id,
+          denomination: denomination.label,
+          originalDenomination: denomination.originalLabel,
+          isDenominationOverride: denomination.isOverride,
         })
       }
     }
@@ -253,7 +352,8 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
     for (const line of rubro.transport ?? []) {
       const unit = line.unit ?? '-'
       const unitCost = toNumber(line.unitCost)
-      const key = `${line.description.trim().toLowerCase()}|${unit}|${unitCost}`
+      const denomination = getEffectiveDenomination(overrideMap, 'TRANSPORT', line.id, line.denomination)
+      const key = `${line.description.trim().toLowerCase()}|${unit}|${unitCost}|${denominationKey(denomination)}`
       const quantity = roundQuantity(budgetQuantity * toNumber(line.quantity))
       const totalCost = roundMoney(quantity * unitCost)
       const existing = transport.get(key)
@@ -261,9 +361,13 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
       if (existing) {
         existing.totalQuantity = roundQuantity(existing.totalQuantity + quantity)
         existing.totalCost = roundMoney(existing.totalCost + totalCost)
+        mergeIpcoMetadata(existing, line.id, denomination)
       } else {
         transport.set(key, {
           key,
+          componentType: 'TRANSPORT',
+          componentIds: [line.id],
+          originalDenominationId: denomination.originalId,
           code: line.code ?? '-',
           description: line.description,
           unit,
@@ -273,7 +377,10 @@ export function consolidateBudgetComponents(budget: BudgetConsolidationInput): B
           totalCost,
           cpc: '',
           vae: '',
-          denomination: formatDenomination(line.denomination),
+          denominationId: denomination.id,
+          denomination: denomination.label,
+          originalDenomination: denomination.originalLabel,
+          isDenominationOverride: denomination.isOverride,
         })
       }
     }

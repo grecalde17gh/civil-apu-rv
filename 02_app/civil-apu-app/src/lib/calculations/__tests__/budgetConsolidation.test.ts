@@ -10,6 +10,7 @@ describe('budget component consolidation', () => {
           rubro: {
             materials: [
               {
+                id: 'rubro-material-1',
                 materialId: 'material-1',
                 quantity: 2,
                 unit: 'kg',
@@ -48,6 +49,7 @@ describe('budget component consolidation', () => {
           rubro: {
             materials: [
               {
+                id: 'rubro-material-1',
                 materialId: 'material-1',
                 quantity: 1.5,
                 unit: 'kg',
@@ -68,6 +70,7 @@ describe('budget component consolidation', () => {
           rubro: {
             materials: [
               {
+                id: 'rubro-material-2',
                 materialId: 'material-1',
                 quantity: 2,
                 unit: 'kg',
@@ -100,6 +103,7 @@ describe('budget component consolidation', () => {
           rubro: {
             labor: [
               {
+                id: 'rubro-labor-1',
                 laborItemId: 'labor-1',
                 workerQuantity: 2,
                 hourlyCostSnapshot: 6,
@@ -131,6 +135,7 @@ describe('budget component consolidation', () => {
           rubro: {
             equipment: [
               {
+                id: 'rubro-equipment-1',
                 equipmentItemId: 'equipment-1',
                 equipmentQuantity: 1.5,
                 rateSnapshot: 10,
@@ -189,5 +194,67 @@ describe('budget component consolidation', () => {
     expect(result.transport[0].totalQuantity).toBe(10)
     expect(result.transport[0].totalCost).toBe(80)
     expect(result.totals.transport).toBe(80)
+  })
+
+  it('uses budget IPCO overrides to split consolidation groups by effective denomination', () => {
+    const result = consolidateBudgetComponents({
+      ipcoOverrides: [
+        {
+          componentType: 'MATERIAL',
+          componentId: 'rubro-material-2',
+          originalDenomination: { id: 'den-1', code: 'D1', name: 'Original' },
+          overrideDenomination: { id: 'den-2', code: 'D2', name: 'Manual' },
+        },
+      ],
+      items: [
+        {
+          quantity: 1,
+          rubro: {
+            materials: [
+              {
+                id: 'rubro-material-1',
+                materialId: 'material-1',
+                quantity: 2,
+                unit: 'kg',
+                unitCostSnapshot: 5,
+                material: {
+                  code: 'MAT-001',
+                  description: 'Cemento',
+                  unit: 'kg',
+                  usesCategory1: false,
+                  usesCategory2: false,
+                  denomination: { id: 'den-1', code: 'D1', name: 'Original' },
+                },
+              },
+              {
+                id: 'rubro-material-2',
+                materialId: 'material-1',
+                quantity: 3,
+                unit: 'kg',
+                unitCostSnapshot: 5,
+                material: {
+                  code: 'MAT-001',
+                  description: 'Cemento',
+                  unit: 'kg',
+                  usesCategory1: false,
+                  usesCategory2: false,
+                  denomination: { id: 'den-1', code: 'D1', name: 'Original' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    })
+
+    expect(result.materials).toHaveLength(2)
+    expect(result.materials.map((row) => row.denomination)).toEqual(['D1 - Original', 'D2 - Manual'])
+    expect(result.materials.find((row) => row.denomination === 'D2 - Manual')).toMatchObject({
+      totalQuantity: 3,
+      totalCost: 15,
+      isDenominationOverride: true,
+      originalDenomination: 'D1 - Original',
+    })
+    expect(result.totals.materials).toBe(25)
   })
 })

@@ -83,6 +83,13 @@ enum ImportStatus {
   FAILED
 }
 
+enum BudgetIpcoComponentType {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+  TRANSPORT
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -156,17 +163,21 @@ model IpcoDenomination {
   code      String? @unique
   name      String  @unique
   source    String?
+  isActive  Boolean @default(true)
 
   materials Material[]
   laborItems LaborItem[]
   equipmentItems EquipmentItem[]
   rubroTransports RubroTransport[]
+  budgetIpcoOriginals BudgetIpcoOverride[] @relation("BudgetIpcoOriginal")
+  budgetIpcoOverrides BudgetIpcoOverride[] @relation("BudgetIpcoOverride")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([name])
   @@index([code])
+  @@index([isActive])
 }
 
 /// Historical table from the first catalog cleanup pass. It is intentionally
@@ -416,6 +427,7 @@ model Budget {
 
   items    BudgetItem[]
   schedule BudgetSchedule?
+  ipcoOverrides BudgetIpcoOverride[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -451,6 +463,28 @@ model BudgetItem {
 
   @@index([budgetId])
   @@index([rubroId])
+}
+
+model BudgetIpcoOverride {
+  id                     String                  @id @default(uuid())
+  budgetId               String
+  componentType          BudgetIpcoComponentType
+  componentId            String
+  originalDenominationId String?
+  overrideDenominationId String?
+
+  budget                 Budget            @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  originalDenomination   IpcoDenomination? @relation("BudgetIpcoOriginal", fields: [originalDenominationId], references: [id])
+  overrideDenomination   IpcoDenomination? @relation("BudgetIpcoOverride", fields: [overrideDenominationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([budgetId, componentType, componentId])
+  @@index([budgetId])
+  @@index([componentType, componentId])
+  @@index([originalDenominationId])
+  @@index([overrideDenominationId])
 }
 
 model BudgetSchedule {
