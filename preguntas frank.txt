@@ -1,0 +1,59 @@
+¿El rendimiento se expresa por hora, por jornada o por unidad producida?
+
+¿El costo de mano de obra debe calcularse por hora, jornada o cuadrilla?
+
+¿Los equipos se calculan por hora, día o porcentaje de uso?
+
+
+¿El transporte siempre se maneja separado o puede estar incluido en materiales?
+
+¿Qué porcentaje de costos indirectos se usa por defecto?
+
+¿El porcentaje de indirectos cambia por proyecto o por rubro?
+
+¿Debe incluirse IVA en el presupuesto final?
+
+¿Cómo se maneja VAE en el cálculo o solo es informativo?
+
+¿Cómo se debe redondear el precio unitario final?
+
+¿Qué formato final debe tener el PDF de APU?
+¿Qué formato final debe tener el Excel exportado?
+
+
+civil-apu-ecuador/
+│
+├── 00_documentacion/
+│   ├── requerimientos_iniciales.md
+│   ├── reglas_calculo_apu.md
+│   ├── modelo_datos.md
+│   └── validacion_franklin.md
+│
+├── 01_excel_base/
+│   └── APUS_RUBROS_IESS_HG.xlsm
+│
+├── 02_app/
+│   └── codigo_fuente/
+│
+├── 03_base_datos/
+│   ├── modelo_prisma.md
+│   └── datos_limpios/
+│
+├── 04_pruebas/
+│   ├── casos_validacion.xlsx
+│   └── comparacion_excel_vs_app.md
+│
+└── 05_producto/
+    ├── propuesta_comercial.md
+    └── roadmap.md
+
+
+
+1. Commit estable
+2. Documentación Franklin
+3. Presupuestos/Proyectos
+4. Importación Excel
+5. UI profesional
+6. Exportación PDF/Excel
+7. Multiusuario
+8. IA

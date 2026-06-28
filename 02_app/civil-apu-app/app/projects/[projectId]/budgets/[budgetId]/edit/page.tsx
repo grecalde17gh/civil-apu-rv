@@ -9,7 +9,7 @@ import { getBudgetScheduleForEdit } from '@/src/lib/db/budgetSchedule'
 import { getBudgetByIdForEdit } from '@/src/lib/db/budgets'
 import {
   updateBudgetAction,
-  addBudgetItemFormAction,
+  addBudgetItemsFormAction,
   deleteBudgetItemAction,
   copyBudgetAction,
   updateBudgetItemQuantityAction,
@@ -41,7 +41,7 @@ const tabs = [
   { key: 'mano-obra', label: 'Mano de obra consolidada' },
   { key: 'equipos', label: 'Equipos consolidados' },
   { key: 'transporte', label: 'Transporte consolidado' },
-  { key: 'denominaciones', label: 'Denominaciones' },
+  { key: 'denominaciones', label: 'Términos para fórmula polinómica' },
   { key: 'cronograma', label: 'Cronograma valorado' },
 ] as const
 
@@ -267,10 +267,11 @@ export default async function EditBudgetPage({ params, searchParams }: EditBudge
           <div className="mt-4 space-y-4">
             <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)_300px]">
               <BudgetItemForm
-                action={addBudgetItemFormAction}
+                action={addBudgetItemsFormAction}
                 budgetId={budgetId}
                 projectId={projectId}
                 rubros={serializedRubros}
+                existingRubroIds={serializedBudgetItems.map((item) => item.rubroId)}
                 variant="catalog"
               />
 

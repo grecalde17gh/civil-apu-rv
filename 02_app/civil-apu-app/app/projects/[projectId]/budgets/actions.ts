@@ -96,66 +96,124 @@ export async function updateBudgetAction(formData: FormData) {
 async function createBudgetItemFromForm(formData: FormData): Promise<string> {
   const data = Object.fromEntries(formData)
   const parsed = validateBudgetItemInput(data)
-
   const budgetId = formData.get('budgetId')
+  const projectId = formData.get('projectId')
+
   if (typeof budgetId !== 'string') {
     throw new Error('BudgetId es requerido')
   }
 
-  const budget = await getBudgetByIdWithProject(budgetId)
-  if (!budget) {
-    throw new Error('Presupuesto no encontrado')
-  }
-
-  const rubro = await getRubroById(parsed.rubroId)
-  if (!rubro) {
-    throw new Error('Rubro no encontrado')
-  }
-
-  if (!isUsableRubroForBudget(rubro)) {
-    throw new Error(incompleteRubroMessage)
-  }
-
-  const directCost = Number(rubro.directCost?.toString() ?? '0')
-  const indirectPercentage = Number(
-    budget.indirectPercentage?.toString() ??
-      budget.project.defaultIndirectPercentage?.toString() ??
-      rubro.indirectPercentage.toString(),
-  )
-  const itemSnapshots = calculateBudgetItemSnapshots({
-    quantity: parsed.quantity,
-    directCost,
-    indirectPercentage,
-  })
-
-  const existingItems = await getBudgetItemsByBudgetId(budgetId)
-  const itemNumber = String(existingItems.length + 1)
-
-  await createBudgetItem({
+  await createBudgetItems({
     budgetId,
-    rubroId: parsed.rubroId,
-    itemNumber,
-    rubroCodeSnapshot: rubro.code,
-    descriptionSnapshot: rubro.description,
-    technicalSpecificationSnapshot: rubro.technicalSpecification ?? undefined,
-    unitSnapshot: rubro.unit,
+    rubroIds: [parsed.rubroId],
     quantity: parsed.quantity,
-    indirectPercentageApplied: itemSnapshots.indirectPercentageApplied,
-    directCostSnapshot: itemSnapshots.directCostSnapshot,
-    indirectCostSnapshot: itemSnapshots.indirectCostSnapshot,
-    unitPriceSnapshot: itemSnapshots.unitPriceSnapshot,
-    subtotalSnapshot: itemSnapshots.subtotalSnapshot,
-    totalPrice: itemSnapshots.totalPrice,
+    failOnDuplicate: true,
   })
 
-  await recalculateBudgetTotals(budgetId)
-
-  const projectId = formData.get('projectId')
   if (typeof projectId === 'string') {
     return `/projects/${projectId}/budgets/${budgetId}/edit`
   }
 
   return '/projects'
+}
+
+async function createBudgetItemsFromForm(formData: FormData): Promise<string> {
+  const budgetId = formData.get('budgetId')
+  const projectId = formData.get('projectId')
+  const rawQuantity = formData.get('quantity') ?? '1'
+  const rubroIds = formData
+    .getAll('rubroIds')
+    .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+
+  if (typeof budgetId !== 'string') {
+    throw new Error('BudgetId es requerido')
+  }
+  if (rubroIds.length === 0) {
+    throw new Error('Seleccione al menos un rubro.')
+  }
+
+  const parsed = validateBudgetItemInput({ rubroId: rubroIds[0], quantity: rawQuantity })
+
+  await createBudgetItems({
+    budgetId,
+    rubroIds,
+    quantity: parsed.quantity,
+    failOnDuplicate: false,
+  })
+
+  if (typeof projectId === 'string') {
+    return `/projects/${projectId}/budgets/${budgetId}/edit`
+  }
+
+  return '/projects'
+}
+
+async function createBudgetItems(params: {
+  budgetId: string
+  rubroIds: string[]
+  quantity: number
+  failOnDuplicate: boolean
+}): Promise<void> {
+  const uniqueRubroIds = [...new Set(params.rubroIds)]
+
+  const budget = await getBudgetByIdWithProject(params.budgetId)
+  if (!budget) {
+    throw new Error('Presupuesto no encontrado')
+  }
+
+  const budgetIndirectPercentage = budget.indirectPercentage?.toString() ?? budget.project.defaultIndirectPercentage?.toString()
+  const existingItems = await getBudgetItemsByBudgetId(params.budgetId)
+  const existingRubroIds = new Set(existingItems.map((item) => item.rubroId))
+  const newRubroIds = uniqueRubroIds.filter((rubroId) => !existingRubroIds.has(rubroId))
+
+  if (params.failOnDuplicate && newRubroIds.length !== uniqueRubroIds.length) {
+    throw new Error('El rubro ya pertenece a este presupuesto.')
+  }
+  if (newRubroIds.length === 0) {
+    throw new Error('Los rubros seleccionados ya pertenecen a este presupuesto.')
+  }
+
+  let createdCount = 0
+
+  for (const rubroId of newRubroIds) {
+    const rubro = await getRubroById(rubroId)
+    if (!rubro) {
+      throw new Error('Rubro no encontrado')
+    }
+
+    if (!isUsableRubroForBudget(rubro)) {
+      throw new Error(incompleteRubroMessage)
+    }
+
+    const directCost = Number(rubro.directCost?.toString() ?? '0')
+    const indirectPercentage = Number(budgetIndirectPercentage ?? rubro.indirectPercentage.toString())
+    const itemSnapshots = calculateBudgetItemSnapshots({
+      quantity: params.quantity,
+      directCost,
+      indirectPercentage,
+    })
+
+    await createBudgetItem({
+      budgetId: params.budgetId,
+      rubroId,
+      itemNumber: String(existingItems.length + createdCount + 1),
+      rubroCodeSnapshot: rubro.code,
+      descriptionSnapshot: rubro.description,
+      technicalSpecificationSnapshot: rubro.technicalSpecification ?? undefined,
+      unitSnapshot: rubro.unit,
+      quantity: params.quantity,
+      indirectPercentageApplied: itemSnapshots.indirectPercentageApplied,
+      directCostSnapshot: itemSnapshots.directCostSnapshot,
+      indirectCostSnapshot: itemSnapshots.indirectCostSnapshot,
+      unitPriceSnapshot: itemSnapshots.unitPriceSnapshot,
+      subtotalSnapshot: itemSnapshots.subtotalSnapshot,
+      totalPrice: itemSnapshots.totalPrice,
+    })
+
+    createdCount += 1
+  }
+
+  await recalculateBudgetTotals(params.budgetId)
 }
 
 export async function addBudgetItemAction(formData: FormData) {
@@ -175,6 +233,24 @@ export async function addBudgetItemFormAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : 'No se pudo agregar el rubro al presupuesto.',
+    }
+  }
+
+  redirect(redirectUrl)
+}
+
+export async function addBudgetItemsFormAction(
+  _previousState: BudgetItemActionState,
+  formData: FormData,
+): Promise<BudgetItemActionState> {
+  let redirectUrl = '/projects'
+
+  try {
+    redirectUrl = await createBudgetItemsFromForm(formData)
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'No se pudieron agregar los rubros al presupuesto.',
     }
   }
 

@@ -107,11 +107,12 @@ vi.mock('@/src/lib/validations/rubroCompletion', () => ({
     Number(rubro.directCost?.toString() ?? '0') > 0,
 }))
 
-import { addBudgetItemAction, addBudgetItemFormAction, copyBudgetAction, updateBudgetItemQuantityAction, updateBudgetScheduleAction } from './actions'
+import { addBudgetItemAction, addBudgetItemFormAction, addBudgetItemsFormAction, copyBudgetAction, updateBudgetItemQuantityAction, updateBudgetScheduleAction } from './actions'
 
 describe('addBudgetItemAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.getBudgetItemsByBudgetId.mockResolvedValue([])
   })
 
   it('uses the budget indirect percentage for an existing rubro without changing the rubro master value', async () => {
@@ -130,8 +131,6 @@ describe('addBudgetItemAction', () => {
       directCost: { toString: () => '100' },
       indirectPercentage: { toString: () => '25' },
     })
-    mocks.getBudgetItemsByBudgetId.mockResolvedValue([])
-
     const formData = new FormData()
     formData.set('budgetId', 'budget-test1')
     formData.set('projectId', 'project-franklin')
@@ -180,6 +179,68 @@ describe('addBudgetItemAction', () => {
       'El rubro debe tener al menos un componente con costo mayor a cero',
     )
     expect(mocks.createBudgetItem).not.toHaveBeenCalled()
+  })
+
+  it('does not add the same rubro twice to a budget', async () => {
+    mocks.getBudgetByIdWithProject.mockResolvedValue({
+      id: 'budget-test1',
+      indirectPercentage: { toString: () => '20' },
+      project: {
+        defaultIndirectPercentage: { toString: () => '18' },
+      },
+    })
+    mocks.getBudgetItemsByBudgetId.mockResolvedValue([{ rubroId: 'rubro-hormigon' }])
+
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('projectId', 'project-franklin')
+    formData.set('rubroId', 'rubro-hormigon')
+    formData.set('quantity', '1')
+
+    await expect(addBudgetItemAction(formData)).rejects.toThrow('El rubro ya pertenece a este presupuesto.')
+    expect(mocks.createBudgetItem).not.toHaveBeenCalled()
+  })
+
+  it('adds multiple selected rubros and skips rubros already in the budget', async () => {
+    mocks.getBudgetByIdWithProject.mockResolvedValue({
+      id: 'budget-test1',
+      indirectPercentage: { toString: () => '20' },
+      project: {
+        defaultIndirectPercentage: { toString: () => '18' },
+      },
+    })
+    mocks.getBudgetItemsByBudgetId.mockResolvedValue([{ rubroId: 'rubro-existente' }])
+    mocks.getRubroById
+      .mockResolvedValueOnce({
+        id: 'rubro-hormigon',
+        code: 'H-001',
+        description: 'Hormigon simple',
+        unit: 'm3',
+        directCost: { toString: () => '100' },
+        indirectPercentage: { toString: () => '25' },
+      })
+      .mockResolvedValueOnce({
+        id: 'rubro-acero',
+        code: 'A-001',
+        description: 'Acero',
+        unit: 'kg',
+        directCost: { toString: () => '10' },
+        indirectPercentage: { toString: () => '25' },
+      })
+
+    const formData = new FormData()
+    formData.set('budgetId', 'budget-test1')
+    formData.set('projectId', 'project-franklin')
+    formData.set('quantity', '1')
+    formData.append('rubroIds', 'rubro-existente')
+    formData.append('rubroIds', 'rubro-hormigon')
+    formData.append('rubroIds', 'rubro-acero')
+
+    await expect(addBudgetItemsFormAction({ ok: true, message: null }, formData)).rejects.toThrow('REDIRECT:/projects/project-franklin/budgets/budget-test1/edit')
+
+    expect(mocks.createBudgetItem).toHaveBeenCalledTimes(2)
+    expect(mocks.createBudgetItem).toHaveBeenNthCalledWith(1, expect.objectContaining({ rubroId: 'rubro-hormigon', itemNumber: '2' }))
+    expect(mocks.createBudgetItem).toHaveBeenNthCalledWith(2, expect.objectContaining({ rubroId: 'rubro-acero', itemNumber: '3' }))
   })
 
   it('returns a UI-safe message when an incomplete rubro is submitted from the form', async () => {
