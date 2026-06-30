@@ -7,7 +7,11 @@ export async function POST(request: Request) {
     const rows = body.rows
     if (!Array.isArray(rows)) return NextResponse.json({ error: 'Payload invalido' }, { status: 400 })
 
-    const result = await applyMaterialsImport(rows)
+    const result = await applyMaterialsImport(rows, {
+      updateMode: body.updateMode,
+      overwriteFields: Array.isArray(body.overwriteFields) ? body.overwriteFields : [],
+      createMissingDenominations: Boolean(body.createMissingDenominations),
+    })
     return NextResponse.json({ result })
   } catch (error) {
     return NextResponse.json(

@@ -27,10 +27,11 @@ describe('excel export helpers', () => {
     expect(safeExcelFileName('rubro:H/001')).toBe('rubro-h-001.xlsx')
   })
 
-  it('builds a rubro individual workbook with expected sheets', () => {
+  it('builds a provincial rubro workbook with one sheet named by code', () => {
     const workbook = buildRubroWorkbook({
       code: 'H-001',
       description: 'Hormigon',
+      projectName: 'Proyecto Provincial',
       unit: 'm3',
       status: 'DRAFT',
       indirectPercentage: 20,
@@ -49,13 +50,15 @@ describe('excel export helpers', () => {
       transport: [{ code: 'TR-001', description: 'Acarreo', unit: 'm3', quantity: 1, unitCost: 1, totalCost: 1 }],
     })
 
-    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
-      'Resumen APU',
-      'Materiales',
-      'Mano de obra',
-      'Equipos',
-      'Transporte',
-    ])
+    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual(['H-001'])
+    const worksheet = workbook.getWorksheet('H-001')
+    expect(worksheet?.getCell('A1').value).toBe('ANÁLISIS DE PRECIOS UNITARIOS')
+    expect(worksheet?.getCell('A2').value).toBe('PROYECTO:')
+    expect(worksheet?.getCell('B2').value).toBe('Proyecto Provincial')
+    expect(worksheet?.getColumn(1).values).toContain('Equipos')
+    expect(worksheet?.getColumn(1).values).toContain('SUBTOTAL')
+    expect(worksheet?.getColumn(1).values).toContain('Total costo directo')
+    expect(worksheet?.getColumn(9).values).toContain('CPC elemento')
   })
 
   it('builds a rubros summary workbook', () => {

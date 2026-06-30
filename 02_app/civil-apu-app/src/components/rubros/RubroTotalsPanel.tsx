@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { calculateIndirectCost, calculateUnitPrice } from '@/src/lib/calculations/apu'
+import { formatRatio5 } from '@/src/lib/rubros/rubroDisplayTotals'
 
 type RubroTotalsPanelProps = {
   materialsSubtotal: number
@@ -10,6 +11,8 @@ type RubroTotalsPanelProps = {
   transportSubtotal: number
   directCost: number
   indirectPercentage: number
+  vaeTotal?: number
+  relativeWeightTotal?: number
   variant?: 'default' | 'sidebar'
 }
 
@@ -29,6 +32,8 @@ export default function RubroTotalsPanel({
   transportSubtotal,
   directCost,
   indirectPercentage,
+  vaeTotal = 0,
+  relativeWeightTotal = 0,
   variant = 'default',
 }: RubroTotalsPanelProps) {
   const [currentIndirectPercentage, setCurrentIndirectPercentage] = useState(indirectPercentage)
@@ -113,22 +118,39 @@ export default function RubroTotalsPanel({
   }
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <div className="mb-5">
-        <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Resumen APU</p>
-        <h2 className="mt-2 text-2xl font-semibold text-zinc-950">Totales del rubro</h2>
+    <section className="overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
+      <div className="border-b border-slate-300 bg-slate-800 px-3 py-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-white">Resumen final del rubro</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {rows.map((row) => (
-          <div key={row.label} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-sm text-zinc-500">{row.label}</p>
-            <p className="mt-1 text-xl font-semibold text-zinc-950">{formatMoney(row.value)}</p>
+      <div className="grid gap-px bg-slate-200 lg:grid-cols-2">
+        <div className="bg-white">
+          {[
+            { label: 'Total costo directo', value: directCost },
+            { label: 'Total costo indirecto', value: totals.indirectCost },
+            { label: 'Valor ofertado', value: totals.unitPrice },
+          ].map((row) => (
+            <div key={row.label} className="grid grid-cols-[1fr_auto] gap-3 border-b border-slate-200 px-3 py-2 last:border-b-0">
+              <span className="font-semibold text-slate-700">{row.label}</span>
+              <span className="font-mono font-bold tabular-nums text-slate-950">{formatMoney(row.value)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white">
+          {[
+            { label: 'VAE total', value: formatRatio5(vaeTotal) },
+            { label: 'Peso relativo total', value: formatRatio5(relativeWeightTotal) },
+          ].map((row) => (
+            <div key={row.label} className="grid grid-cols-[1fr_auto] gap-3 border-b border-slate-200 px-3 py-2 last:border-b-0">
+              <span className="font-semibold text-slate-700">{row.label}</span>
+              <span className="font-mono font-bold tabular-nums text-slate-950">{row.value}</span>
+            </div>
+          ))}
+          <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2 text-sm">
+            <span className="text-slate-600">Porcentaje de costos indirectos</span>
+            <span className="font-mono font-semibold tabular-nums text-slate-950">{formatMoney(currentIndirectPercentage)}%</span>
           </div>
-        ))}
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-sm text-zinc-500">Porcentaje de costos indirectos</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-950">{formatMoney(currentIndirectPercentage)}%</p>
         </div>
       </div>
     </section>

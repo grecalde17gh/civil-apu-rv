@@ -2,6 +2,7 @@ import type { IpcoDenomination, RubroTransport } from '@prisma/client'
 import { addRubroTransportAction, deleteRubroTransportAction, updateRubroTransportAction } from '@/app/rubros/actions'
 import DenominationCombobox from '@/src/components/shared/DenominationCombobox'
 import { calculateNpEpNd, calculateRelativeWeight, calculateVaeElement } from '@/src/lib/calculations/rubroComponentParticipation'
+import { formatMoney2, formatRatio5, sumComponentSubtotal } from '@/src/lib/rubros/rubroDisplayTotals'
 
 type RubroTransportWithDenomination = RubroTransport & {
   denomination?: IpcoDenomination | null
@@ -16,6 +17,10 @@ type RubroTransportSectionProps = {
 }
 
 export default function RubroTransportSection({ rubroId, budgetId, rubroTransport, denominations = [], rubroDirectTotal }: RubroTransportSectionProps) {
+  const subtotal = sumComponentSubtotal(
+    rubroTransport.map((line) => ({ totalCost: line.totalCost, vae: null })),
+    rubroDirectTotal,
+  )
   const denominationOptions = denominations.map((denomination) => ({
     id: denomination.id,
     label: [denomination.code, denomination.name].filter(Boolean).join(' - '),
@@ -26,8 +31,7 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
     <section id="transporte" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Transporte</p>
-          <h2 className="text-base font-semibold text-slate-950">Costos de transporte</h2>
+          <h2 className="text-base font-semibold text-slate-950">Transporte</h2>
         </div>
 
         <form action={addRubroTransportAction} className="grid gap-2 lg:grid-cols-[110px_minmax(220px,1fr)_90px_95px_110px_minmax(220px,1fr)_130px]">
@@ -66,7 +70,7 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
 
           <div className="flex items-end">
             <button type="submit" className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
-              Agregar
+              Insertar Transporte
             </button>
           </div>
         </form>
@@ -83,7 +87,7 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Precio</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Peso relativo %</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC 1 elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC elemento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">NP/EP/ND</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE %</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE % elemento</th>
@@ -111,13 +115,13 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
                     <td className="px-3 py-2 text-slate-800">{line.description}</td>
                     <td className="px-3 py-2 text-slate-700">{line.unit ?? '-'}</td>
                     <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.quantity.toString()}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCost.toString()}</td>
-                    <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(relativeWeight)}</td>
+                    <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatMoney2(line.unitCost)}</td>
+                    <td className="px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatMoney2(line.totalCost)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(relativeWeight)}</td>
                     <td className="px-3 py-2 font-mono text-slate-700">-</td>
                     <td className="px-3 py-2 font-semibold text-slate-700">{calculateNpEpNd(vae)}</td>
                     <td className="px-3 py-2 font-mono tabular-nums text-slate-700">-</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(vaeElement)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(vaeElement)}</td>
                     <td className="px-3 py-2 text-slate-700">{line.denomination ? [line.denomination.code, line.denomination.name].filter(Boolean).join(' - ') : '-'}</td>
                     <td className="px-3 py-2 text-slate-600">{line.notes ?? '-'}</td>
                     <td className="px-3 py-2 text-slate-700">
@@ -167,7 +171,7 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
                         <input type="hidden" name="rubroId" value={rubroId} />
                         {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                         <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
-                          Eliminar
+                          Quitar / Eliminar
                         </button>
                       </form>
                     </td>
@@ -175,13 +179,17 @@ export default function RubroTransportSection({ rubroId, budgetId, rubroTranspor
                 )
               })
             )}
+            <tr className="bg-slate-100 font-semibold text-slate-950">
+              <td colSpan={5} className="px-3 py-2 uppercase tracking-wide">SUBTOTAL</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatMoney2(subtotal.totalCost)}</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.relativeWeight)}</td>
+              <td colSpan={3} className="px-3 py-2"></td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.vaeElement)}</td>
+              <td colSpan={3} className="px-3 py-2"></td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
   )
-}
-
-function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(2)}%`
 }

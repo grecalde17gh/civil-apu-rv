@@ -4,6 +4,7 @@ import { addRubroEquipmentAction, deleteRubroEquipmentAction, updateRubroEquipme
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
 import { formatCatalogOption } from '@/src/lib/catalogSearch'
 import { calculateNpEpNd, calculateRelativeWeight, calculateVaeElement } from '@/src/lib/calculations/rubroComponentParticipation'
+import { formatMoney2, formatOptionalRatio5, formatRatio5, sumComponentSubtotal } from '@/src/lib/rubros/rubroDisplayTotals'
 import InlineEditableCell from './InlineEditableCell'
 
 type RubroEquipmentSectionProps = {
@@ -18,6 +19,10 @@ type RubroEquipmentSectionProps = {
 export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItems, rubroEquipment, rubroPerformanceValue, rubroDirectTotal }: RubroEquipmentSectionProps) {
   const hasRubroPerformance = typeof rubroPerformanceValue === 'number' && Number.isFinite(rubroPerformanceValue) && rubroPerformanceValue > 0
   const rubroPerformanceInputValue = hasRubroPerformance ? String(rubroPerformanceValue) : ''
+  const subtotal = sumComponentSubtotal(
+    rubroEquipment.map((line) => ({ totalCost: line.totalCost, vae: line.equipmentItem.vae })),
+    rubroDirectTotal,
+  )
   const equipmentOptions = equipmentItems.map((item) => ({
     id: item.id,
     label: formatCatalogOption([item.code, item.description, 'hora'], item.hourlyRate?.toString() ?? 'sin tarifa'),
@@ -30,8 +35,7 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
     <section id="equipos" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Equipos</p>
-          <h2 className="text-base font-semibold text-slate-950">Equipos y herramientas</h2>
+          <h2 className="text-base font-semibold text-slate-950">Equipos</h2>
         </div>
 
         <form action={addRubroEquipmentAction} className="grid gap-2 lg:grid-cols-[minmax(250px,1fr)_95px_130px_130px]">
@@ -61,7 +65,7 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
 
           <div className="flex items-end">
             <button type="submit" disabled={!hasRubroPerformance} className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:border disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500">
-              Agregar
+              Insertar Equipos
             </button>
           </div>
         </form>
@@ -79,7 +83,7 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Tarifa</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Peso relativo %</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC 1 elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC elemento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">NP/EP/ND</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE %</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE % elemento</th>
@@ -121,13 +125,13 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
                       required
                     />
                     <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-600">{timeRequired}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.rateSnapshot.toString()}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{line.totalCost.toString()}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(relativeWeight)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatMoney2(line.rateSnapshot)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">{formatMoney2(line.totalCost)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(relativeWeight)}</td>
                     <td className="px-3 py-2 font-mono text-slate-700">{line.equipmentItem.cpc ?? '-'}</td>
                     <td className="px-3 py-2 font-semibold text-slate-700">{calculateNpEpNd(vae)}</td>
                     <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatVae(vae)}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(vaeElement)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(vaeElement)}</td>
                     <InlineEditableCell
                       actionName="equipment"
                       fieldName="notes"
@@ -172,7 +176,7 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
                       <input type="hidden" name="rubroId" value={rubroId} />
                       {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                       <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
-                        Eliminar
+                        Quitar / Eliminar
                       </button>
                     </form>
                     </td>
@@ -180,15 +184,19 @@ export default function RubroEquipmentSection({ rubroId, budgetId, equipmentItem
                 )
               })
             )}
+            <tr className="bg-slate-100 font-semibold text-slate-950">
+              <td colSpan={6} className="px-3 py-2 uppercase tracking-wide">SUBTOTAL</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatMoney2(subtotal.totalCost)}</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.relativeWeight)}</td>
+              <td colSpan={3} className="px-3 py-2"></td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.vaeElement)}</td>
+              <td colSpan={2} className="px-3 py-2"></td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
   )
-}
-
-function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(2)}%`
 }
 
 function formatVae(value: EquipmentItem['vae']): string {
@@ -197,5 +205,5 @@ function formatVae(value: EquipmentItem['vae']): string {
   }
 
   const numericValue = Number(value.toString())
-  return Number.isFinite(numericValue) ? formatPercent(numericValue) : '-'
+  return Number.isFinite(numericValue) ? formatOptionalRatio5(numericValue) : '-'
 }

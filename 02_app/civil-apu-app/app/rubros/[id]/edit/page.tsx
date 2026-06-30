@@ -1,10 +1,10 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RubroForm from '@/src/components/rubros/RubroForm'
 import RubroMaterialsSection from '@/src/components/rubros/RubroMaterialsSection'
 import RubroLaborSection from '@/src/components/rubros/RubroLaborSection'
 import RubroTotalsPanel from '@/src/components/rubros/RubroTotalsPanel'
 import RubroUsageContext from '@/src/components/rubros/RubroUsageContext'
+import RubroExportButton from '@/src/components/rubros/RubroExportButton'
 import { getRubroById, getRubroUsageContexts } from '@/src/lib/db/rubros'
 import { getMaterials } from '@/src/lib/db/materials'
 import { getRubroMaterials } from '@/src/lib/db/rubroMaterials'
@@ -15,10 +15,12 @@ import { getRubroEquipment } from '@/src/lib/db/rubroEquipment'
 import RubroEquipmentSection from '@/src/components/rubros/RubroEquipmentSection'
 import { getRubroTransport } from '@/src/lib/db/rubroTransport'
 import RubroTransportSection from '@/src/components/rubros/RubroTransportSection'
+import RubroExitButton from '@/src/components/rubros/RubroExitButton'
 import { copyRubroAction, updateRubroAction } from '../../actions'
 import { calculateAPU } from '@/src/lib/calculations/apu'
 import { incompleteRubroMessage, isUsableRubroForBudget } from '@/src/lib/validations/rubroCompletion'
 import { getIpcoDenominations } from '@/src/lib/db/denominations'
+import { sumComponentSubtotal } from '@/src/lib/rubros/rubroDisplayTotals'
 
 type RubroEditPageProps = {
   params: Promise<{
@@ -70,6 +72,17 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
   const orderedUsageContexts = highlightedContext
     ? [highlightedContext, ...usageContexts.filter((context) => context.id !== highlightedContext.id)]
     : usageContexts
+  const exportProjects = [
+    ...new Map(
+      usageContexts.map((context) => [
+        context.budget.project.id,
+        {
+          id: context.budget.project.id,
+          name: context.budget.project.name,
+        },
+      ]),
+    ).values(),
+  ]
 
   const totals = calculateAPU({
     materials: rubroMaterials.map((line) => Number(line.totalCost.toString())),
@@ -80,6 +93,26 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
   })
   const isIncomplete = !isUsableRubroForBudget({ directCost: totals.directCost })
   const hasRubroPerformance = Number(rubro.performanceValue?.toString() ?? '0') > 0
+  const componentSubtotals = [
+    sumComponentSubtotal(
+      rubroEquipment.map((line) => ({ totalCost: line.totalCost, vae: line.equipmentItem.vae })),
+      totals.directCost,
+    ),
+    sumComponentSubtotal(
+      rubroLabor.map((line) => ({ totalCost: line.totalCost, vae: line.laborItem.vae })),
+      totals.directCost,
+    ),
+    sumComponentSubtotal(
+      rubroMaterials.map((line) => ({ totalCost: line.totalCost, vae: line.material.vae })),
+      totals.directCost,
+    ),
+    sumComponentSubtotal(
+      rubroTransport.map((line) => ({ totalCost: line.totalCost, vae: null })),
+      totals.directCost,
+    ),
+  ]
+  const vaeTotal = componentSubtotals.reduce((sum, subtotal) => sum + subtotal.vaeElement, 0)
+  const relativeWeightTotal = componentSubtotals.reduce((sum, subtotal) => sum + subtotal.relativeWeight, 0)
 
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-6">
@@ -114,18 +147,15 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
                   Copiar
                 </button>
               </form>
-              <Link
-                href={`/rubros/${id}/export`}
-                className="inline-flex h-8 items-center rounded border border-emerald-300 bg-emerald-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-emerald-800"
+              <RubroExportButton rubroId={id} projects={exportProjects} />
+              <button
+                type="submit"
+                form="rubro-main-form"
+                className="h-8 rounded border border-blue-300 bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800"
               >
-                Exportar APU
-              </Link>
-              <Link
-                href="/rubros"
-                className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
-              >
-                Volver
-              </Link>
+                Guardar
+              </button>
+              <RubroExitButton href="/rubros" />
             </div>
           </div>
 
@@ -136,6 +166,7 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
             hiddenId={id}
             hiddenBudgetId={budgetId}
             variant="technical"
+            formId="rubro-main-form"
           />
 
           {isIncomplete ? (
@@ -161,14 +192,16 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="mt-4">
           <main className="min-w-0 space-y-4">
             <nav className="sticky top-0 z-10 flex overflow-x-auto rounded border border-slate-300 bg-white shadow-sm">
               {[
-                { href: '#materiales', label: 'Materiales' },
-                { href: '#mano-obra', label: 'Mano de obra' },
                 { href: '#equipos', label: 'Equipos' },
+                { href: '#mano-obra', label: 'Mano de obra' },
+                { href: '#materiales', label: 'Materiales' },
                 { href: '#transporte', label: 'Transporte' },
+                { href: '#resumen', label: 'Resumen / Totales' },
+                { href: '#vae', label: 'Determinacion VAE' },
               ].map((item) => (
                 <a
                   key={item.href}
@@ -180,11 +213,12 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               ))}
             </nav>
 
-            <RubroMaterialsSection
+            <RubroEquipmentSection
               rubroId={id}
               budgetId={budgetId}
-              materials={materials}
-              rubroMaterials={rubroMaterials}
+              equipmentItems={equipmentItems}
+              rubroEquipment={rubroEquipment}
+              rubroPerformanceValue={initialData.performanceValue ?? null}
               rubroDirectTotal={totals.directCost}
             />
             <RubroLaborSection
@@ -195,12 +229,11 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               rubroPerformanceValue={initialData.performanceValue ?? null}
               rubroDirectTotal={totals.directCost}
             />
-            <RubroEquipmentSection
+            <RubroMaterialsSection
               rubroId={id}
               budgetId={budgetId}
-              equipmentItems={equipmentItems}
-              rubroEquipment={rubroEquipment}
-              rubroPerformanceValue={initialData.performanceValue ?? null}
+              materials={materials}
+              rubroMaterials={rubroMaterials}
               rubroDirectTotal={totals.directCost}
             />
             <RubroTransportSection
@@ -210,20 +243,39 @@ export default async function EditRubroPage({ params, searchParams }: RubroEditP
               denominations={denominations}
               rubroDirectTotal={totals.directCost}
             />
+            <section id="resumen" className="scroll-mt-14">
+              <RubroTotalsPanel
+                materialsSubtotal={totals.materialsSubtotal}
+                laborSubtotal={totals.laborSubtotal}
+                equipmentSubtotal={totals.equipmentSubtotal}
+                transportSubtotal={totals.transportSubtotal}
+                directCost={totals.directCost}
+                indirectPercentage={Number(rubro.indirectPercentage.toString())}
+                vaeTotal={vaeTotal}
+                relativeWeightTotal={relativeWeightTotal}
+              />
+            </section>
+            <section id="vae" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
+              <div className="border-b border-slate-300 bg-slate-800 px-3 py-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-white">Determinacion VAE</h2>
+              </div>
+              <div className="grid gap-px bg-slate-200 sm:grid-cols-3">
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">VAE %</p>
+                  <p className="mt-1 text-sm text-slate-600">Informativo, no participa en el precio unitario.</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">VAE % elemento</p>
+                  <p className="mt-1 text-sm text-slate-600">Derivado de peso relativo por componente.</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estado</p>
+                  <p className="mt-1 text-sm font-medium text-amber-700">Pendiente de validacion con Franklin.</p>
+                </div>
+              </div>
+            </section>
             <RubroUsageContext contexts={orderedUsageContexts} />
           </main>
-
-          <div className="space-y-4">
-            <RubroTotalsPanel
-              materialsSubtotal={totals.materialsSubtotal}
-              laborSubtotal={totals.laborSubtotal}
-              equipmentSubtotal={totals.equipmentSubtotal}
-              transportSubtotal={totals.transportSubtotal}
-              directCost={totals.directCost}
-              indirectPercentage={Number(rubro.indirectPercentage.toString())}
-              variant="sidebar"
-            />
-          </div>
         </div>
       </div>
     </div>

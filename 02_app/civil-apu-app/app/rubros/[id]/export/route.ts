@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server'
 import { notFound } from 'next/navigation'
 import { calculateAPU } from '@/src/lib/calculations/apu'
 import { prisma } from '@/src/lib/db/prisma'
@@ -10,8 +11,9 @@ type RubroExportRouteProps = {
   }>
 }
 
-export async function GET(_request: Request, { params }: RubroExportRouteProps) {
+export async function GET(request: Request, { params }: RubroExportRouteProps) {
   const { id } = await params
+  const selectedProjectId = new URL(request.url).searchParams.get('projectId')
   const rubro = await prisma.rubro.findUnique({
     where: { id },
     include: {
@@ -24,6 +26,41 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
 
   if (!rubro) {
     notFound()
+  }
+
+  const usageContexts = await prisma.budgetItem.findMany({
+    where: { rubroId: id },
+    select: {
+      budget: {
+        select: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  const projectById = new Map(usageContexts.map((context) => [context.budget.project.id, context.budget.project]))
+  const usedProjects = [...projectById.values()]
+  const exportProject =
+    usedProjects.length === 0
+      ? null
+      : selectedProjectId
+        ? projectById.get(selectedProjectId)
+        : usedProjects.length === 1
+          ? usedProjects[0]
+          : null
+
+  if (selectedProjectId && !exportProject) {
+    return NextResponse.json({ error: 'El proyecto seleccionado no usa este rubro.' }, { status: 400 })
+  }
+
+  if (usedProjects.length > 1 && !selectedProjectId) {
+    return NextResponse.json({ error: 'Seleccione el proyecto para la exportacion.' }, { status: 400 })
   }
 
   const totals = calculateAPU({
@@ -43,6 +80,7 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
     directCost: rubro.directCost,
     indirectPercentage: rubro.indirectPercentage,
     unitPrice: rubro.unitPrice,
+    projectName: exportProject?.name ?? '',
     performanceValue: rubro.performanceValue,
     performanceUnit: rubro.performanceUnit,
     totals,
@@ -51,8 +89,11 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
       description: line.material.description,
       unit: line.unit ?? line.material.unit,
       quantity: line.quantity,
+      performance: '',
       unitCost: line.unitCostSnapshot,
       totalCost: line.totalCost,
+      cpc: line.material.cpc ?? '-',
+      vae: line.material.vae,
       notes: line.notes ?? '',
     })),
     labor: rubro.labor.map((line) => ({
@@ -60,8 +101,11 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
       description: line.laborItem.roleName,
       unit: 'hora',
       quantity: line.workerQuantity,
+      performance: line.timeRequired,
       unitCost: line.hourlyCostSnapshot,
       totalCost: line.totalCost,
+      cpc: line.laborItem.cpc ?? '-',
+      vae: line.laborItem.vae,
       notes: line.notes ?? '',
     })),
     equipment: rubro.equipment.map((line) => ({
@@ -69,8 +113,11 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
       description: line.equipmentItem.description,
       unit: 'hora',
       quantity: line.equipmentQuantity,
+      performance: line.timeRequired,
       unitCost: line.rateSnapshot,
       totalCost: line.totalCost,
+      cpc: line.equipmentItem.cpc ?? '-',
+      vae: line.equipmentItem.vae,
       notes: line.notes ?? '',
     })),
     transport: rubro.transport.map((line) => ({
@@ -78,8 +125,11 @@ export async function GET(_request: Request, { params }: RubroExportRouteProps) 
       description: line.description,
       unit: line.unit ?? '-',
       quantity: line.quantity,
+      performance: '',
       unitCost: line.unitCost,
       totalCost: line.totalCost,
+      cpc: '-',
+      vae: '',
       notes: line.notes ?? '',
     })),
   })

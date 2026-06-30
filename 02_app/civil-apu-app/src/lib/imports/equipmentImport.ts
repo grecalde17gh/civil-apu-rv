@@ -4,25 +4,37 @@ import {
   areImportNumbersEqual,
   assignMissingCatalogCodes,
   buildCatalogTemplateBuffer,
-  buildDenominationLookup,
   cleanString,
   findDuplicateCodes,
   hasImportValue,
   normalizeImportText,
-  parseCatalogSheetFromBuffer,
+  parseCatalogSheetWithMetadataFromBuffer,
   formatNormalizedOptionalNumber,
+  incrementUpdatedField,
   parseImportBoolean,
   parseImportNumber,
   parseOptionalPercentageInput,
   resolveDenominationId,
+  shouldUpdateCatalogField,
+  type CatalogImportApplyOptions,
+  type CatalogUpdateField,
+  type DenominationImportSummary,
   type ImportApplyResult,
   type ImportCellValue,
   type ImportConflict,
   type ImportPreviewRow,
+  type ImportPreviewWarning,
   type ImportRowStatus,
 } from './commonImport'
+import { loadDenominationLookup, prepareDenominationsForImport, shouldUpdateDenomination, summarizeDenominationValues } from './catalogDenominations'
 
 export type EquipmentPreviewRow = ImportPreviewRow<EquipmentImportRow>
+export type EquipmentPreviewResult = {
+  preview: EquipmentPreviewRow[]
+  warnings: ImportPreviewWarning[]
+  omittedOptionalColumns: string[]
+  denominationSummary: DenominationImportSummary
+}
 export const EQUIPMENT_TEMPLATE_FILE_NAME = 'equipos.xlsx'
 
 type ExistingEquipment = {
@@ -32,6 +44,8 @@ type ExistingEquipment = {
   hourlyRate: { toString(): string } | null
   cpc: string | null
   vae: { toString(): string } | null
+  denominationId: string | null
+  isActive: boolean
 }
 
 const equipmentSheetConfig = {
@@ -47,6 +61,23 @@ const equipmentSheetConfig = {
     Category: ['categoria', 'category', 'denominacion', 'denominacion_ipco'],
     IsActive: ['estado', 'activo', 'isactive', 'is active'],
   },
+  optionalColumns: [
+    {
+      key: 'Category',
+      label: 'Denominación IPCO',
+      message: 'El archivo no contiene la columna "Denominación IPCO". Los registros fueron importados sin esta información.',
+    },
+    {
+      key: 'Code',
+      label: 'Código',
+      message: 'El archivo no contiene la columna "Código". Se utilizaron los códigos disponibles del sistema.',
+    },
+    {
+      key: 'IsActive',
+      label: 'Estado',
+      message: 'El archivo no contiene la columna "Estado". Se asignó el estado por defecto.',
+    },
+  ],
 }
 
 type ExistingEquipmentIndex = {
@@ -116,7 +147,7 @@ function getRowStatus(errors: string[], conflicts: ImportConflict[], existing: E
 
 async function buildEquipmentPreviewRows(rows: EquipmentImportRow[], rawValues: Map<number, Record<string, ImportCellValue>>): Promise<EquipmentPreviewRow[]> {
   const existing = await prisma.equipmentItem.findMany({
-    select: { id: true, code: true, description: true, hourlyRate: true, cpc: true, vae: true },
+    select: { id: true, code: true, description: true, hourlyRate: true, cpc: true, vae: true, denominationId: true, isActive: true },
   })
   const existingIndex = buildExistingEquipmentIndex(existing)
   const duplicateCodes = findDuplicateCodes(rows)
@@ -160,6 +191,7 @@ async function buildEquipmentPreviewRows(rows: EquipmentImportRow[], rawValues: 
       data: row,
       originalValues,
       status,
+      existingId: existingEquipment?.id,
       conflicts,
       existingValues: existingEquipment
         ? {
@@ -169,6 +201,8 @@ async function buildEquipmentPreviewRows(rows: EquipmentImportRow[], rawValues: 
             HourlyRate: existingEquipment.hourlyRate ? Number(existingEquipment.hourlyRate.toString()) : null,
             Cpc: existingEquipment.cpc,
             Vae: existingEquipment.vae ? Number(existingEquipment.vae.toString()) : null,
+            Category: existingEquipment.denominationId,
+            IsActive: existingEquipment.isActive,
           }
         : undefined,
       errors,
@@ -177,9 +211,14 @@ async function buildEquipmentPreviewRows(rows: EquipmentImportRow[], rawValues: 
 }
 
 export async function previewEquipmentFromBuffer(buffer: ArrayBuffer): Promise<EquipmentPreviewRow[]> {
-  const raw = await parseCatalogSheetFromBuffer(buffer, equipmentSheetConfig)
-  const rawValues = new Map(raw.map((row) => [row.rowNumber, row.values]))
-  const rows: EquipmentImportRow[] = raw.map((row) => ({
+  const result = await previewEquipmentImportFromBuffer(buffer)
+  return result.preview
+}
+
+export async function previewEquipmentImportFromBuffer(buffer: ArrayBuffer): Promise<EquipmentPreviewResult> {
+  const parsed = await parseCatalogSheetWithMetadataFromBuffer(buffer, equipmentSheetConfig)
+  const rawValues = new Map(parsed.rows.map((row) => [row.rowNumber, row.values]))
+  const rows: EquipmentImportRow[] = parsed.rows.map((row) => ({
     rowNumber: row.rowNumber,
     Code: cleanString(row.values.Code),
     Description: cleanString(row.values.Description),
@@ -191,15 +230,27 @@ export async function previewEquipmentFromBuffer(buffer: ArrayBuffer): Promise<E
     Category: cleanString(row.values.Category),
     IsActive: parseImportBoolean(row.values.IsActive),
   }))
-  return buildEquipmentPreviewRows(rows, rawValues)
+  const denominationLookup = await loadDenominationLookup()
+  const preview = await buildEquipmentPreviewRows(rows, rawValues)
+
+  return {
+    preview,
+    warnings: parsed.warnings,
+    omittedOptionalColumns: parsed.omittedOptionalColumns,
+    denominationSummary: summarizeDenominationValues(rows.map((row) => row.Category), denominationLookup),
+  }
 }
 
-export async function applyEquipmentImport(rows: EquipmentImportRow[]): Promise<ImportApplyResult> {
+export async function applyEquipmentImport(rows: EquipmentImportRow[], options: CatalogImportApplyOptions = {}): Promise<ImportApplyResult> {
   const rawValues = new Map(rows.map((row) => [row.rowNumber, {}]))
   const preview = await buildEquipmentPreviewRows(rows, rawValues)
+  const updateMode = options.updateMode ?? 'skip-existing'
+  const selectedFields = new Set(options.overwriteFields ?? [])
+  const updatedFields: Partial<Record<CatalogUpdateField, number>> = {}
   let omitted = 0
   let conflicts = 0
   let rejected = 0
+  let updated = 0
   const newRows: Array<{
     code?: string
     description: string
@@ -211,20 +262,45 @@ export async function applyEquipmentImport(rows: EquipmentImportRow[]): Promise<
     maintenanceRequired: boolean
     isActive: boolean
   }> = []
-  const denominations = await prisma.ipcoDenomination.findMany({ select: { id: true, code: true, name: true } })
-  const denominationLookup = buildDenominationLookup(denominations)
+  const denominationPreparation = await prepareDenominationsForImport(
+    preview.map((row) => row.data.Category),
+    options.createMissingDenominations ?? false,
+  )
+  const denominationLookup = denominationPreparation.lookup
+  const missingDenominations = new Set(denominationPreparation.missingDenominations)
+  const debugMessages = [...denominationPreparation.debugMessages]
 
   for (const row of preview) {
-    if (row.status === 'existing') {
-      omitted++
-      continue
-    }
-    if (row.status === 'conflict') {
-      conflicts++
-      continue
-    }
     if (row.status === 'error') {
       rejected++
+      continue
+    }
+    if (row.status === 'existing' || row.status === 'conflict') {
+      debugMessages.push(`Registro encontrado: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}`)
+      if (row.status === 'conflict' && updateMode === 'skip-existing') {
+        conflicts++
+      }
+
+      if (shouldSkipMissingDenominationUpdate(row, denominationLookup, updateMode, selectedFields, missingDenominations, debugMessages)) {
+        omitted++
+        continue
+      }
+
+      const updateData = buildEquipmentUpdateData(row, denominationLookup, updateMode, selectedFields, updatedFields)
+      if (!row.existingId || Object.keys(updateData).length === 0) {
+        omitted++
+        debugMessages.push(`Registro omitido sin cambios aplicables: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}`)
+        continue
+      }
+
+      await prisma.equipmentItem.update({
+        where: { id: row.existingId },
+        data: updateData,
+      })
+      updated++
+      Object.keys(updateData).forEach((field) => {
+        debugMessages.push(`Campo actualizado en ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}: ${field}`)
+      })
       continue
     }
 
@@ -243,7 +319,125 @@ export async function applyEquipmentImport(rows: EquipmentImportRow[]): Promise<
 
   const created = newRows.length > 0 ? (await prisma.equipmentItem.createMany({ data: newRows })).count : 0
 
-  return { created, updated: 0, omitted, conflicts, rejected }
+  return {
+    created,
+    updated,
+    omitted,
+    conflicts,
+    rejected,
+    updatedFields,
+    createdDenominations: denominationPreparation.createdDenominations,
+    missingDenominations: [...missingDenominations],
+    debugMessages,
+  }
+}
+
+function shouldSkipMissingDenominationUpdate(
+  row: EquipmentPreviewRow,
+  denominationLookup: Map<string, string>,
+  updateMode: NonNullable<CatalogImportApplyOptions['updateMode']>,
+  selectedFields: Set<CatalogUpdateField>,
+  missingDenominations: Set<string>,
+  debugMessages: string[],
+) {
+  if (!shouldUpdateDenomination({
+    incomingValue: row.data.Category,
+    existingValue: row.existingValues?.Category,
+    updateMode,
+    selectedFields,
+  })) {
+    return false
+  }
+
+  const incomingDenomination = cleanString(row.data.Category)
+  if (!incomingDenomination) return false
+
+  const denominationId = resolveDenominationId(incomingDenomination, denominationLookup)
+  if (denominationId) {
+    debugMessages.push(`Denominacion IPCO encontrada para ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}: ${incomingDenomination}`)
+    return false
+  }
+
+  missingDenominations.add(incomingDenomination)
+  debugMessages.push(`Registro omitido por Denominacion IPCO no encontrada: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`} -> ${incomingDenomination}`)
+  return true
+}
+
+function buildEquipmentUpdateData(
+  row: EquipmentPreviewRow,
+  denominationLookup: Map<string, string>,
+  updateMode: NonNullable<CatalogImportApplyOptions['updateMode']>,
+  selectedFields: Set<CatalogUpdateField>,
+  updatedFields: Partial<Record<CatalogUpdateField, number>>,
+) {
+  const data: {
+    hourlyRate?: number
+    cpc?: string
+    vae?: number
+    denominationId?: string
+    isActive?: boolean
+  } = {}
+  const existing = row.existingValues ?? {}
+  const incomingDenomination = cleanString(row.data.Category)
+  const incomingDenominationId = resolveDenominationId(incomingDenomination, denominationLookup)
+  const incomingCpc = cleanString(row.data.Cpc)
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'denomination',
+    selectedFields,
+    incomingHasValue: Boolean(incomingDenomination),
+    existingHasValue: Boolean(existing.Category),
+  })) {
+    data.denominationId = incomingDenominationId
+    incrementUpdatedField(updatedFields, 'denomination')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'cpc',
+    selectedFields,
+    incomingHasValue: Boolean(incomingCpc),
+    existingHasValue: Boolean(cleanString(existing.Cpc)),
+  })) {
+    data.cpc = incomingCpc ?? undefined
+    incrementUpdatedField(updatedFields, 'cpc')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'vae',
+    selectedFields,
+    incomingHasValue: row.data.Vae !== null && row.data.Vae !== undefined,
+    existingHasValue: existing.Vae !== null && existing.Vae !== undefined,
+  })) {
+    data.vae = row.data.Vae ?? undefined
+    incrementUpdatedField(updatedFields, 'vae')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'price',
+    selectedFields,
+    incomingHasValue: row.data.HourlyRate !== null && row.data.HourlyRate !== undefined,
+    existingHasValue: existing.HourlyRate !== null && existing.HourlyRate !== undefined,
+  })) {
+    data.hourlyRate = Number(row.data.HourlyRate)
+    incrementUpdatedField(updatedFields, 'price')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'isActive',
+    selectedFields,
+    incomingHasValue: row.data.IsActive !== null && row.data.IsActive !== undefined,
+    existingHasValue: existing.IsActive !== null && existing.IsActive !== undefined,
+  })) {
+    data.isActive = row.data.IsActive ?? undefined
+    incrementUpdatedField(updatedFields, 'isActive')
+  }
+
+  return data
 }
 
 export async function buildEquipmentTemplateBuffer(): Promise<Buffer> {
@@ -257,5 +451,5 @@ export async function buildEquipmentTemplateBuffer(): Promise<Buffer> {
   ])
 }
 
-export const equipmentImport = { previewEquipmentFromBuffer, applyEquipmentImport, buildEquipmentTemplateBuffer }
+export const equipmentImport = { previewEquipmentFromBuffer, previewEquipmentImportFromBuffer, applyEquipmentImport, buildEquipmentTemplateBuffer }
 export default equipmentImport

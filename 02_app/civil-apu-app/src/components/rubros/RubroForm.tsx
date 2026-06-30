@@ -8,6 +8,7 @@ type RubroFormProps = {
   hiddenBudgetId?: string
   hiddenProjectId?: string
   variant?: 'default' | 'technical'
+  formId?: string
 }
 
 const rubroStatusOptions = [
@@ -31,10 +32,14 @@ export default function RubroForm({
   hiddenBudgetId,
   hiddenProjectId,
   variant = 'default',
+  formId,
 }: RubroFormProps) {
   if (variant === 'technical') {
     return (
-      <form action={action} className="border-t border-slate-200 bg-white">
+      <form id={formId} action={action} className="border-t border-slate-200 bg-white">
+        <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-800">Datos generales del rubro</h2>
+        </div>
         <div className="grid gap-px bg-slate-200 md:grid-cols-[130px_minmax(260px,1fr)_90px_110px_120px_110px]">
           <label className="bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Codigo

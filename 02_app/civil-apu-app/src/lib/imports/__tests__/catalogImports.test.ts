@@ -14,19 +14,23 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       createMany: vi.fn(),
+      update: vi.fn(),
     },
     laborItem: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       createMany: vi.fn(),
+      update: vi.fn(),
     },
     equipmentItem: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       createMany: vi.fn(),
+      update: vi.fn(),
     },
     ipcoDenomination: {
       findMany: vi.fn(),
+      createMany: vi.fn(),
     },
   },
 }))
@@ -50,10 +54,10 @@ vi.mock('../../db/equipment', () => ({
   updateEquipment: mocks.updateEquipment,
 }))
 
-import { applyEquipmentImport, previewEquipmentFromBuffer } from '../equipmentImport'
-import { applyLaborImport, buildLaborTemplateBuffer, LABOR_TEMPLATE_FILE_NAME, previewLaborFromBuffer } from '../laborImport'
+import { applyEquipmentImport, previewEquipmentFromBuffer, previewEquipmentImportFromBuffer } from '../equipmentImport'
+import { applyLaborImport, buildLaborTemplateBuffer, LABOR_TEMPLATE_FILE_NAME, previewLaborFromBuffer, previewLaborImportFromBuffer } from '../laborImport'
 import { parseBooleanInput, parseDecimalInput } from '../commonImport'
-import { MATERIALS_TEMPLATE_FILE_NAME, applyMaterialsImport, buildMaterialsTemplateBuffer, previewMaterialsFromBuffer } from '../materialsImport'
+import { MATERIALS_TEMPLATE_FILE_NAME, applyMaterialsImport, buildMaterialsTemplateBuffer, previewMaterialsFromBuffer, previewMaterialsImportFromBuffer } from '../materialsImport'
 import { buildEquipmentTemplateBuffer, EQUIPMENT_TEMPLATE_FILE_NAME } from '../equipmentImport'
 import { GET as getMaterialsTemplate } from '../../../../app/api/imports/materials/template/route'
 import { GET as getLaborTemplate } from '../../../../app/api/imports/labor/template/route'
@@ -89,13 +93,17 @@ describe('catalog Excel imports', () => {
     mocks.prisma.material.findMany.mockResolvedValue([])
     mocks.prisma.material.findUnique.mockResolvedValue(null)
     mocks.prisma.material.createMany.mockImplementation(async ({ data }) => ({ count: data.length }))
+    mocks.prisma.material.update.mockResolvedValue({})
     mocks.prisma.laborItem.findMany.mockResolvedValue([])
     mocks.prisma.laborItem.findUnique.mockResolvedValue(null)
     mocks.prisma.laborItem.createMany.mockImplementation(async ({ data }) => ({ count: data.length }))
+    mocks.prisma.laborItem.update.mockResolvedValue({})
     mocks.prisma.equipmentItem.findMany.mockResolvedValue([])
     mocks.prisma.equipmentItem.findUnique.mockResolvedValue(null)
     mocks.prisma.equipmentItem.createMany.mockImplementation(async ({ data }) => ({ count: data.length }))
+    mocks.prisma.equipmentItem.update.mockResolvedValue({})
     mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([])
+    mocks.prisma.ipcoDenomination.createMany.mockImplementation(async ({ data }) => ({ count: data.length }))
   })
 
   it('parses decimal comma and latin thousands formats', () => {
@@ -138,6 +146,19 @@ describe('catalog Excel imports', () => {
       UsesCategory2: false,
     })
     expect(preview[0].originalValues.UnitPrice).toBe('1.234,56')
+  })
+
+  it('reports missing optional material columns as warnings without blocking preview', async () => {
+    const buffer = await workbookBuffer('Materiales', ['descripcion', 'unidad', 'costo'], [
+      ['Cemento', 'saco', 10],
+    ])
+
+    const result = await previewMaterialsImportFromBuffer(buffer)
+
+    expect(result.preview[0].errors).toEqual([])
+    expect(result.preview[0].data).toMatchObject({ Code: 'MAT-001', IsActive: null, Denomination: null })
+    expect(result.omittedOptionalColumns).toEqual(['Denominación IPCO', 'Código', 'Estado'])
+    expect(result.warnings.map((warning) => warning.column)).toEqual(['Denominación IPCO', 'Código', 'Estado'])
   })
 
   it('normalizes material cpc and vae in 00.01 percent format', async () => {
@@ -195,6 +216,18 @@ describe('catalog Excel imports', () => {
     expect(preview[0].data).toMatchObject({ Code: 'MO-001', RoleName: 'Albanil', HourlyCost: 4.5 })
   })
 
+  it('reports missing optional labor columns as warnings without blocking preview', async () => {
+    const buffer = await workbookBuffer('Mano de obra', ['rol', 'unidad', 'costo'], [
+      ['Albanil', 'hora', 4.5],
+    ])
+
+    const result = await previewLaborImportFromBuffer(buffer)
+
+    expect(result.preview[0].errors).toEqual([])
+    expect(result.preview[0].data).toMatchObject({ Code: 'MO-001', Category: null, IsActive: null })
+    expect(result.omittedOptionalColumns).toEqual(['Denominación IPCO', 'Código', 'Estado'])
+  })
+
   it('imports labor cpc and vae values', async () => {
     const buffer = await workbookBuffer('Mano de obra', ['codigo', 'rol', 'unidad', 'costo', 'cpc', 'vae'], [
       [null, 'Peon', 'hora', 3.5, '1%', '12,50%'],
@@ -214,6 +247,18 @@ describe('catalog Excel imports', () => {
     expect(preview).toHaveLength(1)
     expect(preview[0].errors).toEqual([])
     expect(preview[0].data).toMatchObject({ Code: 'EQ-001', Description: 'Concretera', HourlyRate: 8 })
+  })
+
+  it('reports missing optional equipment columns as warnings without blocking preview', async () => {
+    const buffer = await workbookBuffer('Equipos', ['descripcion', 'unidad', 'tarifa'], [
+      ['Concretera', 'hora', 8],
+    ])
+
+    const result = await previewEquipmentImportFromBuffer(buffer)
+
+    expect(result.preview[0].errors).toEqual([])
+    expect(result.preview[0].data).toMatchObject({ Code: 'EQ-001', Category: null, IsActive: null })
+    expect(result.omittedOptionalColumns).toEqual(['Denominación IPCO', 'Código', 'Estado'])
   })
 
   it('imports equipment cpc and vae values', async () => {
@@ -293,8 +338,9 @@ describe('catalog Excel imports', () => {
       { rowNumber: 2, Code: 'EQ-001', Description: 'Concretera', Unit: 'hora', HourlyRate: 9 },
     ])
 
-    expect(result).toEqual({ created: 0, updated: 0, omitted: 0, conflicts: 1, rejected: 0 })
+    expect(result).toMatchObject({ created: 0, updated: 0, omitted: 1, conflicts: 1, rejected: 0 })
     expect(mocks.prisma.equipmentItem.createMany).not.toHaveBeenCalled()
+    expect(mocks.prisma.equipmentItem.update).not.toHaveBeenCalled()
     expect(mocks.createEquipment).not.toHaveBeenCalled()
   })
 
@@ -396,7 +442,7 @@ describe('catalog Excel imports', () => {
       { rowNumber: 3, Code: 'MAT-002', Description: 'Arena', Unit: 'm3', UnitPrice: -1 },
     ])
 
-    expect(result).toEqual({ created: 1, updated: 0, omitted: 0, conflicts: 0, rejected: 1 })
+    expect(result).toMatchObject({ created: 1, updated: 0, omitted: 0, conflicts: 0, rejected: 1 })
     expect(mocks.prisma.material.createMany).toHaveBeenCalledTimes(1)
     expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ code: 'MAT-001', unitCost: 10, usesCategory1: false, usesCategory2: false })],
@@ -413,6 +459,150 @@ describe('catalog Excel imports', () => {
 
     expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ denominationId: 'den-1' })],
+    })
+  })
+
+  it('updates only empty IPCO denomination on an existing material', async () => {
+    mocks.prisma.material.findMany.mockResolvedValue([
+      {
+        id: 'mat-1',
+        code: 'MAT-001',
+        description: 'Cemento',
+        unit: 'saco',
+        price1: decimalMock(10),
+        price2: null,
+        price3: null,
+        unitCost: decimalMock(10),
+        cpc: '0.01',
+        vae: decimalMock('0.12'),
+        denominationId: null,
+        isActive: true,
+      },
+    ])
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([{ id: 'den-1', code: 'A.1', name: 'Cemento Portland' }])
+
+    const result = await applyMaterialsImport(
+      [{ rowNumber: 2, Code: 'MAT-001', Description: 'Cemento', Unit: 'saco', UnitPrice: 99, Denomination: 'A.1' }],
+      { updateMode: 'fill-empty' },
+    )
+
+    expect(result).toMatchObject({ created: 0, updated: 1, omitted: 0, rejected: 0, updatedFields: { denomination: 1 } })
+    expect(mocks.prisma.material.update).toHaveBeenCalledWith({
+      where: { id: 'mat-1' },
+      data: { denominationId: 'den-1' },
+    })
+  })
+
+  it('overwrites selected IPCO denomination without altering material price', async () => {
+    mocks.prisma.material.findMany.mockResolvedValue([
+      {
+        id: 'mat-1',
+        code: 'MAT-001',
+        description: 'Cemento',
+        unit: 'saco',
+        price1: decimalMock(10),
+        price2: null,
+        price3: null,
+        unitCost: decimalMock(10),
+        cpc: null,
+        vae: null,
+        denominationId: 'old-den',
+        isActive: true,
+      },
+    ])
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([{ id: 'den-1', code: 'A.1', name: 'Cemento Portland' }])
+
+    const result = await applyMaterialsImport(
+      [{ rowNumber: 2, Code: 'MAT-001', Description: 'Cemento', Unit: 'saco', UnitPrice: 99, Denomination: 'Cemento Portland' }],
+      { updateMode: 'overwrite-selected', overwriteFields: ['denomination'] },
+    )
+
+    expect(result).toMatchObject({ created: 0, updated: 1, omitted: 0, rejected: 0, updatedFields: { denomination: 1 } })
+    expect(mocks.prisma.material.update).toHaveBeenCalledWith({
+      where: { id: 'mat-1' },
+      data: { denominationId: 'den-1' },
+    })
+  })
+
+  it('reports missing IPCO denominations in material preview using normalized names', async () => {
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([{ id: 'den-1', code: null, name: 'Materiales petreos' }])
+    const buffer = await workbookBuffer('Materiales', ['codigo', 'descripcion', 'unidad', 'costo', 'denominacion'], [
+      ['MAT-001', 'Ripio', 'm3', 10, ' Materiales  Pétreos '],
+      ['MAT-002', 'Acero', 'kg', 1.5, 'Nueva denominacion'],
+    ])
+
+    const result = await previewMaterialsImportFromBuffer(buffer)
+
+    expect(result.denominationSummary).toMatchObject({
+      existing: ['Materiales  Pétreos'],
+      missing: ['Nueva denominacion'],
+      recordsWithExisting: 1,
+      recordsWithMissing: 1,
+    })
+  })
+
+  it('omits existing material update when IPCO denomination is missing and auto-create is disabled', async () => {
+    mocks.prisma.material.findMany.mockResolvedValue([
+      {
+        id: 'mat-1',
+        code: 'MAT-001',
+        description: 'Cemento',
+        unit: 'saco',
+        price1: decimalMock(10),
+        price2: null,
+        price3: null,
+        unitCost: decimalMock(10),
+        cpc: null,
+        vae: null,
+        denominationId: 'old-den',
+        isActive: true,
+      },
+    ])
+    mocks.prisma.ipcoDenomination.findMany.mockResolvedValue([])
+
+    const result = await applyMaterialsImport(
+      [{ rowNumber: 2, Code: 'MAT-001', Description: 'Cemento', Unit: 'saco', UnitPrice: 99, Denomination: 'Nueva IPCO' }],
+      { updateMode: 'overwrite-selected', overwriteFields: ['denomination'] },
+    )
+
+    expect(result).toMatchObject({ created: 0, updated: 0, omitted: 1, rejected: 0, missingDenominations: ['Nueva IPCO'] })
+    expect(result.debugMessages?.join(' ')).toContain('Registro omitido por Denominacion IPCO no encontrada')
+    expect(mocks.prisma.material.update).not.toHaveBeenCalled()
+  })
+
+  it('creates missing IPCO denomination and assigns it when material update is authorized', async () => {
+    mocks.prisma.material.findMany.mockResolvedValue([
+      {
+        id: 'mat-1',
+        code: 'MAT-001',
+        description: 'Cemento',
+        unit: 'saco',
+        price1: decimalMock(10),
+        price2: null,
+        price3: null,
+        unitCost: decimalMock(10),
+        cpc: null,
+        vae: null,
+        denominationId: 'old-den',
+        isActive: true,
+      },
+    ])
+    mocks.prisma.ipcoDenomination.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'den-new', code: null, name: 'Nueva IPCO' }])
+
+    const result = await applyMaterialsImport(
+      [{ rowNumber: 2, Code: 'MAT-001', Description: 'Cemento', Unit: 'saco', UnitPrice: 99, Denomination: 'Nueva IPCO' }],
+      { updateMode: 'overwrite-selected', overwriteFields: ['denomination'], createMissingDenominations: true },
+    )
+
+    expect(mocks.prisma.ipcoDenomination.createMany).toHaveBeenCalledWith({
+      data: [{ name: 'Nueva IPCO', isActive: true }],
+    })
+    expect(result).toMatchObject({ created: 0, updated: 1, omitted: 0, rejected: 0, createdDenominations: 1, updatedFields: { denomination: 1 } })
+    expect(mocks.prisma.material.update).toHaveBeenCalledWith({
+      where: { id: 'mat-1' },
+      data: { denominationId: 'den-new' },
     })
   })
 
@@ -441,7 +631,7 @@ describe('catalog Excel imports', () => {
       { rowNumber: 4, Code: 'MAT-003', Description: 'Ripio', Unit: 'm3', UnitPrice: 14 },
     ])
 
-    expect(result).toEqual({ created: 3, updated: 0, omitted: 0, conflicts: 0, rejected: 0 })
+    expect(result).toMatchObject({ created: 3, updated: 0, omitted: 0, conflicts: 0, rejected: 0 })
     expect(mocks.prisma.material.createMany).toHaveBeenCalledTimes(1)
     expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
       data: [
@@ -462,7 +652,7 @@ describe('catalog Excel imports', () => {
       { rowNumber: 3, Code: null, Description: 'Arena fina', Unit: 'm3', UnitPrice: 12.25 },
     ])
 
-    expect(result).toEqual({ created: 1, updated: 0, omitted: 1, conflicts: 0, rejected: 0 })
+    expect(result).toMatchObject({ created: 1, updated: 0, omitted: 1, conflicts: 0, rejected: 0 })
     expect(mocks.prisma.material.createMany).toHaveBeenCalledTimes(1)
     expect(mocks.prisma.material.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ code: 'MAT-002', description: 'Arena fina' })],
@@ -479,8 +669,9 @@ describe('catalog Excel imports', () => {
       { rowNumber: 2, Code: 'MAT-001', Description: 'Cemento Portland', Unit: 'saco', UnitPrice: 8.75 },
     ])
 
-    expect(result).toEqual({ created: 0, updated: 0, omitted: 0, conflicts: 1, rejected: 0 })
+    expect(result).toMatchObject({ created: 0, updated: 0, omitted: 1, conflicts: 1, rejected: 0 })
     expect(mocks.prisma.material.createMany).not.toHaveBeenCalled()
+    expect(mocks.prisma.material.update).not.toHaveBeenCalled()
     expect(mocks.createMaterial).not.toHaveBeenCalled()
   })
 

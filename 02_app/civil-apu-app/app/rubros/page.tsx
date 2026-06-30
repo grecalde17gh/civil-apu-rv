@@ -3,6 +3,7 @@ import { getRubros } from '@/src/lib/db/rubros'
 import type { Rubro } from '@prisma/client'
 import { copyRubroAction } from './actions'
 import ExportVisibleTableButton from '@/src/components/export/ExportVisibleTableButton'
+import RubroImportButton from '@/src/components/rubros/RubroImportButton'
 
 const getStatusLabel = (status: Rubro['status']) => {
   switch (status) {
@@ -64,12 +65,7 @@ export default async function RubrosPage() {
               >
                 Exportar rubros
               </Link>
-              <Link
-                href="/imports/materials"
-                className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
-              >
-                Importar
-              </Link>
+              <RubroImportButton buttonLabel="Importar Rubros/APU" />
               <Link
                 href="/"
                 className="inline-flex h-8 items-center rounded border border-slate-500 bg-slate-800 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"

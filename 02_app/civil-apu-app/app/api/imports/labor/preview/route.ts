@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { previewLaborFromBuffer } from '../../../../../src/lib/imports/laborImport'
+import { previewLaborImportFromBuffer } from '../../../../../src/lib/imports/laborImport'
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +15,13 @@ export async function POST(request: Request) {
     }
 
     const arrayBuffer = await (fileEntry as File).arrayBuffer()
-    const preview = await previewLaborFromBuffer(arrayBuffer)
+    const result = await previewLaborImportFromBuffer(arrayBuffer)
+    const preview = result.preview
     if (preview.length === 0) {
       return NextResponse.json({ error: 'No se detectaron filas. Verifica que la hoja se llame Mano de obra y tenga encabezados validos.' }, { status: 400 })
     }
 
-    return NextResponse.json({ preview })
+    return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? `No se pudo leer el Excel: ${error.message}` : 'No se pudo leer el Excel' },

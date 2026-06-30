@@ -4,6 +4,7 @@ import { addRubroMaterialAction, deleteRubroMaterialAction, updateRubroMaterialA
 import CatalogCombobox from '@/src/components/shared/CatalogCombobox'
 import { formatCatalogOption } from '@/src/lib/catalogSearch'
 import { calculateNpEpNd, calculateRelativeWeight, calculateVaeElement } from '@/src/lib/calculations/rubroComponentParticipation'
+import { formatMoney2, formatOptionalRatio5, formatRatio5, sumComponentSubtotal } from '@/src/lib/rubros/rubroDisplayTotals'
 import InlineEditableCell from './InlineEditableCell'
 
 type RubroMaterialsSectionProps = {
@@ -15,6 +16,10 @@ type RubroMaterialsSectionProps = {
 }
 
 export default function RubroMaterialsSection({ rubroId, budgetId, materials, rubroMaterials, rubroDirectTotal }: RubroMaterialsSectionProps) {
+  const subtotal = sumComponentSubtotal(
+    rubroMaterials.map((line) => ({ totalCost: line.totalCost, vae: line.material.vae })),
+    rubroDirectTotal,
+  )
   const materialOptions = materials.map((material) => ({
     id: material.id,
     label: formatCatalogOption(
@@ -28,8 +33,7 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
     <section id="materiales" className="scroll-mt-14 overflow-hidden rounded border border-slate-300 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-300 bg-slate-50 px-3 py-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Materiales</p>
-          <h2 className="text-base font-semibold text-slate-950">Composicion de materiales</h2>
+          <h2 className="text-base font-semibold text-slate-950">Materiales</h2>
         </div>
 
         <form action={addRubroMaterialAction} className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_110px_110px_130px]">
@@ -62,7 +66,7 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
 
           <div className="flex items-end">
             <button type="submit" className="h-8 w-full rounded bg-blue-700 px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-800">
-              Agregar
+              Insertar Material
             </button>
           </div>
         </form>
@@ -80,7 +84,7 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo unitario</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Costo total</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">Peso relativo %</th>
-              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC 1 elemento</th>
+              <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">CPC elemento</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">NP/EP/ND</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE %</th>
               <th className="px-3 py-2 font-semibold uppercase tracking-wide text-slate-600">VAE % elemento</th>
@@ -146,15 +150,15 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
                         </button>
                       </form>
                     </td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{line.unitCostSnapshot.toString()}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatMoney2(line.unitCostSnapshot)}</td>
                     <td className="bg-slate-50 px-3 py-2 font-mono font-semibold tabular-nums text-slate-950">
-                      {line.totalCost.toString()}
+                      {formatMoney2(line.totalCost)}
                     </td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(relativeWeight)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(relativeWeight)}</td>
                     <td className="px-3 py-2 font-mono text-slate-700">{line.material.cpc ?? '-'}</td>
                     <td className="px-3 py-2 font-semibold text-slate-700">{calculateNpEpNd(vae)}</td>
                     <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{formatVae(vae)}</td>
-                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatPercent(vaeElement)}</td>
+                    <td className="bg-slate-50 px-3 py-2 font-mono tabular-nums text-slate-700">{formatRatio5(vaeElement)}</td>
                     <InlineEditableCell
                       actionName="material"
                       fieldName="notes"
@@ -204,7 +208,7 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
                       <input type="hidden" name="rubroId" value={rubroId} />
                       {budgetId ? <input type="hidden" name="budgetId" value={budgetId} /> : null}
                       <button type="submit" className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-rose-700">
-                        Eliminar
+                        Quitar / Eliminar
                       </button>
                     </form>
                     </td>
@@ -212,15 +216,19 @@ export default function RubroMaterialsSection({ rubroId, budgetId, materials, ru
                 )
               })
             )}
+            <tr className="bg-slate-100 font-semibold text-slate-950">
+              <td colSpan={6} className="px-3 py-2 uppercase tracking-wide">SUBTOTAL</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatMoney2(subtotal.totalCost)}</td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.relativeWeight)}</td>
+              <td colSpan={3} className="px-3 py-2"></td>
+              <td className="px-3 py-2 font-mono tabular-nums">{formatRatio5(subtotal.vaeElement)}</td>
+              <td colSpan={2} className="px-3 py-2"></td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
   )
-}
-
-function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(2)}%`
 }
 
 function formatVae(value: Material['vae']): string {
@@ -229,5 +237,5 @@ function formatVae(value: Material['vae']): string {
   }
 
   const numericValue = Number(value.toString())
-  return Number.isFinite(numericValue) ? formatPercent(numericValue) : '-'
+  return Number.isFinite(numericValue) ? formatOptionalRatio5(numericValue) : '-'
 }

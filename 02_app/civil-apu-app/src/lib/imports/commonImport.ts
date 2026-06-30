@@ -17,9 +17,37 @@ export type ImportPreviewRow<T> = {
   data: T
   originalValues: Record<string, ImportCellValue>
   status: ImportRowStatus
+  existingId?: string
   conflicts?: ImportConflict[]
   existingValues?: Record<string, ImportCellValue>
   errors: string[]
+}
+
+export type ImportPreviewWarning = {
+  column: string
+  message: string
+}
+
+export type CatalogUpdateMode = 'skip-existing' | 'fill-empty' | 'overwrite-selected'
+
+export type CatalogUpdateField = 'denomination' | 'cpc' | 'vae' | 'price' | 'unit' | 'isActive'
+
+export type CatalogImportApplyOptions = {
+  updateMode?: CatalogUpdateMode
+  overwriteFields?: CatalogUpdateField[]
+  createMissingDenominations?: boolean
+}
+
+export type CatalogOptionalColumn = {
+  key: string
+  label: string
+  message: string
+}
+
+export type CatalogParseResult = {
+  rows: RawCatalogRow[]
+  warnings: ImportPreviewWarning[]
+  omittedOptionalColumns: string[]
 }
 
 export type ImportApplyResult = {
@@ -28,6 +56,18 @@ export type ImportApplyResult = {
   omitted: number
   conflicts: number
   rejected: number
+  updatedFields?: Partial<Record<CatalogUpdateField, number>>
+  warnings?: string[]
+  createdDenominations?: number
+  missingDenominations?: string[]
+  debugMessages?: string[]
+}
+
+export type DenominationImportSummary = {
+  existing: string[]
+  missing: string[]
+  recordsWithExisting: number
+  recordsWithMissing: number
 }
 
 export type DenominationLookupItem = {
@@ -44,6 +84,7 @@ export type RawCatalogRow = {
 export type CatalogSheetConfig = {
   sheetNames: string[]
   columns: Record<string, string[]>
+  optionalColumns?: CatalogOptionalColumn[]
 }
 
 function normalizeText(value: string | number | boolean): string {
@@ -81,11 +122,21 @@ export async function parseCatalogSheetFromBuffer(
   buffer: ArrayBuffer,
   config: CatalogSheetConfig,
 ): Promise<RawCatalogRow[]> {
+  const result = await parseCatalogSheetWithMetadataFromBuffer(buffer, config)
+  return result.rows
+}
+
+export async function parseCatalogSheetWithMetadataFromBuffer(
+  buffer: ArrayBuffer,
+  config: CatalogSheetConfig,
+): Promise<CatalogParseResult> {
   const workbook = XLSX.read(Buffer.from(buffer), { type: 'buffer', cellDates: false })
 
   const acceptedSheetNames = config.sheetNames.map(normalizeText)
   const sheetName = workbook.SheetNames.find((name) => acceptedSheetNames.includes(normalizeText(name || '')))
-  if (!sheetName) return []
+  if (!sheetName) {
+    return { rows: [], warnings: [], omittedOptionalColumns: [] }
+  }
 
   const headerMap = buildHeaderMap(config.columns)
   const worksheet = workbook.Sheets[sheetName]
@@ -97,6 +148,13 @@ export async function parseCatalogSheetFromBuffer(
   })
   const headerRow = matrix[0] ?? []
   const headers = headerRow.map((cell) => headerMap.get(normalizeText(cell ?? '')) ?? '')
+  const presentKeys = new Set(headers.filter(Boolean))
+  const omittedOptionalColumns = (config.optionalColumns ?? [])
+    .filter((column) => !presentKeys.has(column.key))
+    .map((column) => column.label)
+  const warnings = (config.optionalColumns ?? [])
+    .filter((column) => !presentKeys.has(column.key))
+    .map((column) => ({ column: column.label, message: column.message }))
 
   const rows: RawCatalogRow[] = []
 
@@ -114,7 +172,7 @@ export async function parseCatalogSheetFromBuffer(
     }
   })
 
-  return rows
+  return { rows, warnings, omittedOptionalColumns }
 }
 
 export function parseDecimalInput(value: unknown): number | null {
@@ -192,6 +250,28 @@ export function resolveDenominationId(value: unknown, lookup: Map<string, string
   const normalized = normalizeImportText(value)
   if (!normalized) return undefined
   return lookup.get(normalized)
+}
+
+export function incrementUpdatedField(
+  updatedFields: Partial<Record<CatalogUpdateField, number>>,
+  field: CatalogUpdateField,
+): void {
+  updatedFields[field] = (updatedFields[field] ?? 0) + 1
+}
+
+export function shouldUpdateCatalogField(params: {
+  mode: CatalogUpdateMode
+  field: CatalogUpdateField
+  selectedFields: Set<CatalogUpdateField>
+  incomingHasValue: boolean
+  existingHasValue: boolean
+}): boolean {
+  const { mode, field, selectedFields, incomingHasValue, existingHasValue } = params
+
+  if (!incomingHasValue) return false
+  if (mode === 'skip-existing') return false
+  if (mode === 'fill-empty') return !existingHasValue
+  return selectedFields.has(field)
 }
 
 export function areImportNumbersEqual(left: unknown, right: unknown): boolean {

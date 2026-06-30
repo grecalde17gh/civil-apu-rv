@@ -4,25 +4,37 @@ import {
   areImportNumbersEqual,
   assignMissingCatalogCodes,
   buildCatalogTemplateBuffer,
-  buildDenominationLookup,
   cleanString,
   findDuplicateCodes,
   hasImportValue,
   normalizeImportText,
-  parseCatalogSheetFromBuffer,
+  parseCatalogSheetWithMetadataFromBuffer,
   formatNormalizedOptionalNumber,
+  incrementUpdatedField,
   parseImportBoolean,
   parseImportNumber,
   parseOptionalPercentageInput,
   resolveDenominationId,
+  shouldUpdateCatalogField,
+  type CatalogImportApplyOptions,
+  type CatalogUpdateField,
+  type DenominationImportSummary,
   type ImportApplyResult,
   type ImportCellValue,
   type ImportConflict,
   type ImportPreviewRow,
+  type ImportPreviewWarning,
   type ImportRowStatus,
 } from './commonImport'
+import { loadDenominationLookup, prepareDenominationsForImport, shouldUpdateDenomination, summarizeDenominationValues } from './catalogDenominations'
 
 export type PreviewRow = ImportPreviewRow<MaterialImportRow>
+export type MaterialsPreviewResult = {
+  preview: PreviewRow[]
+  warnings: ImportPreviewWarning[]
+  omittedOptionalColumns: string[]
+  denominationSummary: DenominationImportSummary
+}
 export const MATERIALS_TEMPLATE_FILE_NAME = 'materiales.xlsx'
 
 type ExistingMaterial = {
@@ -36,6 +48,8 @@ type ExistingMaterial = {
   unitCost: { toString(): string }
   cpc: string | null
   vae: { toString(): string } | null
+  denominationId: string | null
+  isActive: boolean
 }
 
 const materialSheetConfig = {
@@ -55,6 +69,23 @@ const materialSheetConfig = {
     UsesCategory1: ['categoria_1', 'cat_1', 'category_1'],
     UsesCategory2: ['categoria_2', 'cat_2', 'category_2'],
   },
+  optionalColumns: [
+    {
+      key: 'Denomination',
+      label: 'Denominación IPCO',
+      message: 'El archivo no contiene la columna "Denominación IPCO". Los registros fueron importados sin esta información.',
+    },
+    {
+      key: 'Code',
+      label: 'Código',
+      message: 'El archivo no contiene la columna "Código". Se utilizaron los códigos disponibles del sistema.',
+    },
+    {
+      key: 'IsActive',
+      label: 'Estado',
+      message: 'El archivo no contiene la columna "Estado". Se asignó el estado por defecto.',
+    },
+  ],
 }
 
 type ExistingMaterialIndex = {
@@ -130,6 +161,8 @@ function materialExistingValues(existing: ExistingMaterial) {
     Price3: existing.price3 ? Number(existing.price3.toString()) : null,
     Cpc: existing.cpc,
     Vae: existing.vae ? Number(existing.vae.toString()) : null,
+    Denomination: existing.denominationId,
+    IsActive: existing.isActive,
   }
 }
 
@@ -142,7 +175,7 @@ function getRowStatus(errors: string[], conflicts: ImportConflict[], existing: E
 
 async function buildMaterialPreviewRows(rows: MaterialImportRow[], rawValues: Map<number, Record<string, ImportCellValue>>): Promise<PreviewRow[]> {
   const existing = await prisma.material.findMany({
-    select: { id: true, code: true, description: true, unit: true, price1: true, price2: true, price3: true, unitCost: true, cpc: true, vae: true },
+    select: { id: true, code: true, description: true, unit: true, price1: true, price2: true, price3: true, unitCost: true, cpc: true, vae: true, denominationId: true, isActive: true },
   })
   const existingIndex = buildExistingMaterialIndex(existing)
   const duplicateCodes = findDuplicateCodes(rows)
@@ -192,6 +225,7 @@ async function buildMaterialPreviewRows(rows: MaterialImportRow[], rawValues: Ma
       data: row,
       originalValues,
       status,
+      existingId: existingMaterial?.id,
       conflicts,
       existingValues: existingMaterial ? materialExistingValues(existingMaterial) : undefined,
       errors,
@@ -200,9 +234,14 @@ async function buildMaterialPreviewRows(rows: MaterialImportRow[], rawValues: Ma
 }
 
 export async function previewMaterialsFromBuffer(buffer: ArrayBuffer): Promise<PreviewRow[]> {
-  const raw = await parseCatalogSheetFromBuffer(buffer, materialSheetConfig)
-  const rawValues = new Map(raw.map((row) => [row.rowNumber, row.values]))
-  const rows: MaterialImportRow[] = raw.map((row) => ({
+  const result = await previewMaterialsImportFromBuffer(buffer)
+  return result.preview
+}
+
+export async function previewMaterialsImportFromBuffer(buffer: ArrayBuffer): Promise<MaterialsPreviewResult> {
+  const parsed = await parseCatalogSheetWithMetadataFromBuffer(buffer, materialSheetConfig)
+  const rawValues = new Map(parsed.rows.map((row) => [row.rowNumber, row.values]))
+  const rows: MaterialImportRow[] = parsed.rows.map((row) => ({
     rowNumber: row.rowNumber,
     Code: cleanString(row.values.Code),
     Description: cleanString(row.values.Description),
@@ -219,15 +258,27 @@ export async function previewMaterialsFromBuffer(buffer: ArrayBuffer): Promise<P
     UsesCategory2: parseImportBoolean(row.values.UsesCategory2) ?? false,
   }))
 
-  return buildMaterialPreviewRows(rows, rawValues)
+  const denominationLookup = await loadDenominationLookup()
+  const preview = await buildMaterialPreviewRows(rows, rawValues)
+
+  return {
+    preview,
+    warnings: parsed.warnings,
+    omittedOptionalColumns: parsed.omittedOptionalColumns,
+    denominationSummary: summarizeDenominationValues(rows.map((row) => row.Denomination), denominationLookup),
+  }
 }
 
-export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<ImportApplyResult> {
+export async function applyMaterialsImport(rows: MaterialImportRow[], options: CatalogImportApplyOptions = {}): Promise<ImportApplyResult> {
   const rawValues = new Map(rows.map((row) => [row.rowNumber, {}]))
   const preview = await buildMaterialPreviewRows(rows, rawValues)
+  const updateMode = options.updateMode ?? 'skip-existing'
+  const selectedFields = new Set(options.overwriteFields ?? [])
+  const updatedFields: Partial<Record<CatalogUpdateField, number>> = {}
   let omitted = 0
   let conflicts = 0
   let rejected = 0
+  let updated = 0
   const newRows: Array<{
     code?: string
     description: string
@@ -243,20 +294,45 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<I
     usesCategory2: boolean
     isActive: boolean
   }> = []
-  const denominations = await prisma.ipcoDenomination.findMany({ select: { id: true, code: true, name: true } })
-  const denominationLookup = buildDenominationLookup(denominations)
+  const denominationPreparation = await prepareDenominationsForImport(
+    preview.map((row) => row.data.Denomination),
+    options.createMissingDenominations ?? false,
+  )
+  const denominationLookup = denominationPreparation.lookup
+  const missingDenominations = new Set(denominationPreparation.missingDenominations)
+  const debugMessages = [...denominationPreparation.debugMessages]
 
   for (const row of preview) {
-    if (row.status === 'existing') {
-      omitted++
-      continue
-    }
-    if (row.status === 'conflict') {
-      conflicts++
-      continue
-    }
     if (row.status === 'error') {
       rejected++
+      continue
+    }
+    if (row.status === 'existing' || row.status === 'conflict') {
+      debugMessages.push(`Registro encontrado: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}`)
+      if (row.status === 'conflict' && updateMode === 'skip-existing') {
+        conflicts++
+      }
+
+      if (shouldSkipMissingDenominationUpdate(row, denominationLookup, updateMode, selectedFields, missingDenominations, debugMessages)) {
+        omitted++
+        continue
+      }
+
+      const updateData = buildMaterialUpdateData(row, denominationLookup, updateMode, selectedFields, updatedFields)
+      if (!row.existingId || Object.keys(updateData).length === 0) {
+        omitted++
+        debugMessages.push(`Registro omitido sin cambios aplicables: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}`)
+        continue
+      }
+
+      await prisma.material.update({
+        where: { id: row.existingId },
+        data: updateData,
+      })
+      updated++
+      Object.keys(updateData).forEach((field) => {
+        debugMessages.push(`Campo actualizado en ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}: ${field}`)
+      })
       continue
     }
 
@@ -279,7 +355,140 @@ export async function applyMaterialsImport(rows: MaterialImportRow[]): Promise<I
 
   const created = newRows.length > 0 ? (await prisma.material.createMany({ data: newRows })).count : 0
 
-  return { created, updated: 0, omitted, conflicts, rejected }
+  return {
+    created,
+    updated,
+    omitted,
+    conflicts,
+    rejected,
+    updatedFields,
+    createdDenominations: denominationPreparation.createdDenominations,
+    missingDenominations: [...missingDenominations],
+    debugMessages,
+  }
+}
+
+function shouldSkipMissingDenominationUpdate(
+  row: PreviewRow,
+  denominationLookup: Map<string, string>,
+  updateMode: NonNullable<CatalogImportApplyOptions['updateMode']>,
+  selectedFields: Set<CatalogUpdateField>,
+  missingDenominations: Set<string>,
+  debugMessages: string[],
+) {
+  if (!shouldUpdateDenomination({
+    incomingValue: row.data.Denomination,
+    existingValue: row.existingValues?.Denomination,
+    updateMode,
+    selectedFields,
+  })) {
+    return false
+  }
+
+  const incomingDenomination = cleanString(row.data.Denomination)
+  if (!incomingDenomination) return false
+
+  const denominationId = resolveDenominationId(incomingDenomination, denominationLookup)
+  if (denominationId) {
+    debugMessages.push(`Denominacion IPCO encontrada para ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`}: ${incomingDenomination}`)
+    return false
+  }
+
+  missingDenominations.add(incomingDenomination)
+  debugMessages.push(`Registro omitido por Denominacion IPCO no encontrada: ${row.data.Code ?? row.data.Description ?? `fila ${row.rowNumber}`} -> ${incomingDenomination}`)
+  return true
+}
+
+function buildMaterialUpdateData(
+  row: PreviewRow,
+  denominationLookup: Map<string, string>,
+  updateMode: NonNullable<CatalogImportApplyOptions['updateMode']>,
+  selectedFields: Set<CatalogUpdateField>,
+  updatedFields: Partial<Record<CatalogUpdateField, number>>,
+) {
+  const data: {
+    unit?: string
+    price1?: number
+    unitCost?: number
+    cpc?: string
+    vae?: number
+    denominationId?: string
+    isActive?: boolean
+  } = {}
+  const existing = row.existingValues ?? {}
+  const incomingDenomination = cleanString(row.data.Denomination)
+  const incomingDenominationId = resolveDenominationId(incomingDenomination, denominationLookup)
+  const incomingCpc = cleanString(row.data.Cpc)
+  const incomingUnit = cleanString(row.data.Unit)
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'denomination',
+    selectedFields,
+    incomingHasValue: Boolean(incomingDenomination),
+    existingHasValue: Boolean(existing.Denomination),
+  })) {
+    data.denominationId = incomingDenominationId
+    incrementUpdatedField(updatedFields, 'denomination')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'cpc',
+    selectedFields,
+    incomingHasValue: Boolean(incomingCpc),
+    existingHasValue: Boolean(cleanString(existing.Cpc)),
+  })) {
+    data.cpc = incomingCpc ?? undefined
+    incrementUpdatedField(updatedFields, 'cpc')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'vae',
+    selectedFields,
+    incomingHasValue: row.data.Vae !== null && row.data.Vae !== undefined,
+    existingHasValue: existing.Vae !== null && existing.Vae !== undefined,
+  })) {
+    data.vae = row.data.Vae ?? undefined
+    incrementUpdatedField(updatedFields, 'vae')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'price',
+    selectedFields,
+    incomingHasValue: row.data.UnitPrice !== null && row.data.UnitPrice !== undefined,
+    existingHasValue: existing.UnitPrice !== null && existing.UnitPrice !== undefined,
+  })) {
+    data.price1 = Number(row.data.UnitPrice)
+    data.unitCost = Number(row.data.UnitPrice)
+    incrementUpdatedField(updatedFields, 'price')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'unit',
+    selectedFields,
+    incomingHasValue: Boolean(incomingUnit),
+    existingHasValue: Boolean(cleanString(existing.Unit)),
+  })) {
+    data.unit = incomingUnit ?? undefined
+    incrementUpdatedField(updatedFields, 'unit')
+  }
+
+  if (shouldUpdateCatalogField({
+    mode: updateMode,
+    field: 'isActive',
+    selectedFields,
+    incomingHasValue: row.data.IsActive !== null && row.data.IsActive !== undefined,
+    existingHasValue: existing.IsActive !== null && existing.IsActive !== undefined,
+  })) {
+    data.isActive = row.data.IsActive ?? undefined
+    incrementUpdatedField(updatedFields, 'isActive')
+  }
+
+  return data
 }
 
 export async function buildMaterialsTemplateBuffer(): Promise<Buffer> {
@@ -295,5 +504,5 @@ export async function buildMaterialsTemplateBuffer(): Promise<Buffer> {
   ])
 }
 
-export const materialsImport = { previewMaterialsFromBuffer, applyMaterialsImport, buildMaterialsTemplateBuffer }
+export const materialsImport = { previewMaterialsFromBuffer, previewMaterialsImportFromBuffer, applyMaterialsImport, buildMaterialsTemplateBuffer }
 export default materialsImport
