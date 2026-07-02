@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { notFound } from 'next/navigation'
-import { calculateAPU } from '@/src/lib/calculations/apu'
 import { prisma } from '@/src/lib/db/prisma'
 import { safeExcelFileName, workbookToBuffer } from '@/src/lib/export/excel'
 import { buildRubroWorkbook } from '@/src/lib/export/rubrosExcel'
@@ -63,27 +62,19 @@ export async function GET(request: Request, { params }: RubroExportRouteProps) {
     return NextResponse.json({ error: 'Seleccione el proyecto para la exportacion.' }, { status: 400 })
   }
 
-  const totals = calculateAPU({
-    materials: rubro.materials.map((line) => Number(line.totalCost.toString())),
-    labor: rubro.labor.map((line) => Number(line.totalCost.toString())),
-    equipment: rubro.equipment.map((line) => Number(line.totalCost.toString())),
-    transport: rubro.transport.map((line) => Number(line.totalCost.toString())),
-    indirectPercentage: Number(rubro.indirectPercentage.toString()),
-  })
-
-  const workbook = buildRubroWorkbook({
+  const workbook = await buildRubroWorkbook({
     code: rubro.code,
     description: rubro.description,
     technicalSpecification: rubro.technicalSpecification,
     unit: rubro.unit,
     status: rubro.status,
     directCost: rubro.directCost,
+    indirectCost: rubro.indirectCost,
     indirectPercentage: rubro.indirectPercentage,
     unitPrice: rubro.unitPrice,
     projectName: exportProject?.name ?? '',
     performanceValue: rubro.performanceValue,
     performanceUnit: rubro.performanceUnit,
-    totals,
     materials: rubro.materials.map((line) => ({
       code: line.material.code ?? '-',
       description: line.material.description,
